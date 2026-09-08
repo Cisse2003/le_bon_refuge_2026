@@ -1,4 +1,4 @@
-# LE BON REFUGE — Version PHP + MySQL (Hostinger)
+# LE BON REFUGE - Version PHP + MySQL (Hostinger)
 
 Application complète pour le restaurant **Le Bon Refuge**.  
 Déploiement **directement dans le répertoire racine** (`public_html`).

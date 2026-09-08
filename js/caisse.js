@@ -135,7 +135,7 @@ async function chargerCommandesEnCours() {
   container.innerHTML = mesCommandes.map((o) => `
     <div class="card" style="margin-bottom:0.8rem; display:flex; justify-content:space-between; align-items:center; gap:1rem;">
       <div>
-        <strong>#${o.numero}</strong> — ${o.table ? 'Table ' + o.table : (o.type === 'a_emporter' ? 'À emporter' : o.type)}<br>
+        <strong>#${o.numero}</strong> - ${o.table ? 'Table ' + o.table : (o.type === 'a_emporter' ? 'À emporter' : o.type)}<br>
         <small>${o.items.length} article(s) · ${formatMontant(o.montantTotal)}</small>
       </div>
       <div style="text-align:right;">

@@ -62,7 +62,7 @@ async function charger() {
 }
 
 function rendreColonne(orders, urgent, lectureSeule) {
-  if (orders.length === 0) return '<div class="empty-state" style="padding:1rem 0;">—</div>';
+  if (orders.length === 0) return '<div class="empty-state" style="padding:1rem 0;">-</div>';
   return orders.map((o) => `
     <div class="card kds-card ${urgent ? 'urgent' : ''}">
       <h4><span>#${o.numero}</span><span>${formatHeure(o.dateCreation)}</span></h4>
@@ -75,7 +75,7 @@ function rendreColonne(orders, urgent, lectureSeule) {
               <input type="checkbox" ${it.statutItem === 'PRETE' ? 'checked' : ''} ${lectureSeule ? 'disabled' : ''}
                 data-order="${o.id}" data-item="${it.id}" data-cur="${it.statutItem}">
               ${it.quantite}× ${it.nom} ${it.options && it.options.length ? '<em>(' + it.options.join(', ') + ')</em>' : ''}
-              ${it.personnalisation ? `<em>— ${it.personnalisation.taille}, ${it.personnalisation.parfum}${it.personnalisation.texte ? ', "' + it.personnalisation.texte + '"' : ''}</em>` : ''}
+              ${it.personnalisation ? `<em>- ${it.personnalisation.taille}, ${it.personnalisation.parfum}${it.personnalisation.texte ? ', "' + it.personnalisation.texte + '"' : ''}</em>` : ''}
             </label>
           </div>
         `).join('')}

@@ -276,7 +276,7 @@ function afficherRecapitulatif(commande) {
     `<div class="ticket-row"><span>${it.quantite}× ${it.nom}</span><span>${formatMontant(it.prix * it.quantite)}</span></div>`
   ).join('');
   document.getElementById('ticketConfirmation').innerHTML = `
-    <h4>Récapitulatif — à confirmer</h4>
+    <h4>Récapitulatif - à confirmer</h4>
     <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.type] || commande.type}</span></div>
     ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${commande.avance.date} ${commande.avance.heure}</span></div>` : ''}
     <div class="ticket-row"><span>Nom</span><span>${commande.client.nom}</span></div>
@@ -290,8 +290,8 @@ function afficherRecapitulatif(commande) {
   commande.items.forEach((it) => { message += `- ${it.quantite}x ${it.nom}${it.options.length ? ' (' + it.options.join(', ') + ')' : ''}\n`; });
   message += `Total : ${formatMontant(commande.montantTotal)}\n`;
   message += `Type : ${typeLabels[commande.type] || commande.type}`;
-  if (commande.avance) message += ` — retrait le ${commande.avance.date} à ${commande.avance.heure}`;
-  message += `\nNom : ${commande.client.nom} — Tél : ${commande.client.tel}`;
+  if (commande.avance) message += ` - retrait le ${commande.avance.date} à ${commande.avance.heure}`;
+  message += `\nNom : ${commande.client.nom} - Tél : ${commande.client.tel}`;
   if (commande.notesGenerales) message += `\nNote : ${commande.notesGenerales}`;
 
   document.getElementById('btnAppelerRecap').href = lienAppel();

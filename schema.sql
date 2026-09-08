@@ -1,5 +1,5 @@
 -- ============================================================
--- LE BON REFUGE — Schéma MySQL pour Hostinger
+-- LE BON REFUGE - Schéma MySQL pour Hostinger
 -- Exécutez ce fichier dans phpMyAdmin (hPanel → Bases de données → phpMyAdmin)
 -- ============================================================
 

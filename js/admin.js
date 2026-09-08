@@ -321,7 +321,7 @@ async function chargerCommandes() {
   document.getElementById('tblCommandes').innerHTML = orders.map((o) => `
     <tr>
       <td>#${o.numero}</td><td>${o.type}</td>
-      <td>${o.table ? 'Table ' + o.table : (o.client ? o.client.nom : '—')}</td>
+      <td>${o.table ? 'Table ' + o.table : (o.client ? o.client.nom : '-')}</td>
       <td>${formatMontant(o.montantTotal)}</td>
       <td><span class="badge ${badgeClasses[o.statut] || ''}">${o.statut}</span></td>
       <td>${formatHeure(o.dateCreation)}</td>
@@ -429,7 +429,7 @@ async function chargerHistorique() {
   document.getElementById('tblHistorique').innerHTML = logs.map((l) => `
     <tr>
       <td>${new Date(l.date).toLocaleString('fr-FR')}</td>
-      <td>${l.orderNumero ? '#' + l.orderNumero : '—'}</td>
+      <td>${l.orderNumero ? '#' + l.orderNumero : '-'}</td>
       <td>${l.utilisateur}</td><td>${l.role}</td><td>${l.action}</td>
       <td>${l.champ || ''} ${l.ancienneValeur ? '· ' + l.ancienneValeur + ' → ' + l.nouvelleValeur : ''}</td>
     </tr>

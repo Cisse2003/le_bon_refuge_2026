@@ -1,6 +1,6 @@
 <?php
 /**
- * Configuration Le Bon Refuge — Hostinger / PHP + MySQL
+ * Configuration Le Bon Refuge - Hostinger / PHP + MySQL
  * Renseignez ces valeurs avec celles de votre base créée dans hPanel Hostinger.
  */
 

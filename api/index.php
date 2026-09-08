@@ -1,6 +1,6 @@
 <?php
 /**
- * Routeur API unique — Le Bon Refuge (PHP + MySQL)
+ * Routeur API unique - Le Bon Refuge (PHP + MySQL)
  * Toutes les requêtes /api/* arrivent ici grâce au .htaccess
  */
 
@@ -487,7 +487,7 @@ if ($segments[0] === 'export') {
         exit;
     }
     if ($method === 'GET' && $action === 'excel') {
-        // Export CSV simple (compatible Excel) — multi-feuilles non supporté sans lib externe
+        // Export CSV simple (compatible Excel) - multi-feuilles non supporté sans lib externe
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="export-le-bon-refuge-' . date('Y-m-d') . '.csv"');
         $out = fopen('php://output', 'w');
