@@ -5,7 +5,7 @@
  */
 
 // === BASE DE DONNÉES (à remplir avec les infos de hPanel → Bases de données MySQL) ===
-define('DB_HOST', 'localhost');          // généralement localhost sur Hostinger
+define('DB_HOST', '193.203.168.148');          // généralement localhost sur Hostinger
 define('DB_NAME', 'u926072297_lebonrefuge'); // nom de votre base
 define('DB_USER', 'u926072297_user');        // utilisateur MySQL
 define('DB_PASS', 'TestTest@224');  // mot de passe MySQL

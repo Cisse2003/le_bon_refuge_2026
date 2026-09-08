@@ -16,6 +16,7 @@ function getDB(): PDO {
             http_response_code(500);
             header('Content-Type: application/json');
             echo json_encode(['error' => 'Connexion base de données impossible. Vérifiez config.php']);
+            exit('Erreur MySQL : ' . $e->getMessage());
             exit;
         }
     }
