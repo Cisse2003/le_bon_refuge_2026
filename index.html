@@ -1,24 +1,37 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Le Bon Refuge — Le goût qui vous accueille</title>
-<link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Le Bon Refuge — Le goût qui vous accueille</title>
+  <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
 <body>
 
 <header class="topbar">
   <div class="container">
-    <a href="#accueil" class="logo" style="display:flex;align-items:center;gap:0.5rem;"><img src="/images/logo.jpg" alt="Le Bon Refuge" style="height:42px;width:42px;object-fit:cover;border-radius:8px;">LE BON <span>REFUGE</span></a>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="#accueil">Accueil</a></li>
-      <li><a href="#menu">Menu</a></li>
-      <li><a href="#reservation">Réservation</a></li>
-      <li><a href="#gateaux">Gâteaux</a></li>
-      <li><a href="#contact">Contact</a></li>
-    </ul>
+    <a href="#accueil" class="logo" style="display:flex;align-items:center;gap:0.5rem;">
+      <img src="/images/logo.jpg" alt="Le Bon Refuge" style="height:42px;width:42px;object-fit:cover;border-radius:8px;">
+      LE BON <span>REFUGE</span>
+    </a>
+
+    <!-- Bouton Burger (trois traits) pour mobile -->
+    <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu" aria-expanded="false" type="button">
+      <span class="hamburger"></span>
+    </button>
+
+    <!-- Menu de navigation -->
+    <nav class="nav-container" id="navContainer">
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#accueil">Accueil</a></li>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#reservation">Réservation</a></li>
+        <li><a href="#gateaux">Gâteaux</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+
     <div class="nav-actions">
       <a href="/login.html" class="btn btn--ghost btn--sm">Espace staff</a>
       <button class="btn btn--dark cart-btn" id="btnOuvrirPanier" type="button">
@@ -224,7 +237,7 @@
   </div>
 </div>
 
-<!-- Modale récapitulatif : la commande n'est confirmée que par appel ou WhatsApp -->
+<!-- Modale récapitulatif -->
 <div class="modal-overlay" id="modalConfirmation">
   <div class="modal">
     <button class="modal-close" data-close-modal>✕</button>
@@ -240,5 +253,31 @@
 
 <script src="/js/api.js"></script>
 <script src="/js/site.js"></script>
+
+<!-- Script pour le fonctionnement du menu burger -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const menuToggle = document.getElementById('menuToggle');
+    const navContainer = document.getElementById('navContainer');
+    const navLinks = document.querySelectorAll('.nav-links a');
+
+    if (menuToggle && navContainer) {
+      menuToggle.addEventListener('click', function () {
+        const isOpen = navContainer.classList.toggle('open');
+        menuToggle.classList.toggle('open', isOpen);
+        menuToggle.setAttribute('aria-expanded', isOpen);
+      });
+
+      // Ferme le menu lorsqu'un lien est cliqué
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          navContainer.classList.remove('open');
+          menuToggle.classList.remove('open');
+          menuToggle.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
+  });
+</script>
 </body>
 </html>
