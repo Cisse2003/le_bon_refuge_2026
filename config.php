@@ -8,7 +8,7 @@
 define('DB_HOST', 'localhost');          // généralement localhost sur Hostinger
 define('DB_NAME', 'u926072297_lebonrefuge'); // nom de votre base
 define('DB_USER', 'u926072297_user');        // utilisateur MySQL
-define('DB_PASS', 'LeBonRefuge@224');  // mot de passe MySQL
+define('DB_PASS', 'TestTest@224@224');  // mot de passe MySQL
 define('DB_CHARSET', 'utf8mb4');
 
 // === APPLICATION ===
