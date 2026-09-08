@@ -3,6 +3,8 @@
 -- Exécutez ce fichier dans phpMyAdmin (hPanel → Bases de données → phpMyAdmin)
 -- ============================================================
 
+USE u926072297_lebonrefuge;
+
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
