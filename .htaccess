@@ -1,0 +1,17 @@
+RewriteEngine On
+
+# Protéger les fichiers sensibles (accès interdit depuis le navigateur)
+RewriteRule ^config\.php$ - [F,L]
+RewriteRule ^schema\.sql$ - [F,L]
+RewriteRule ^includes/ - [F,L]
+RewriteRule ^data/ - [F,L]
+# seed.php est accessible le temps de l'initialisation → SUPPRIMEZ-LE ensuite
+
+# Routing API : /api/xxx → api/index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+
+# Sécurité basique
+Options -Indexes
+ServerSignature Off
