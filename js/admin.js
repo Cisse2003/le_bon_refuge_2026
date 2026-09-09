@@ -3,7 +3,7 @@ let PRODUITS_CACHE = [];
 let INGREDIENTS_CACHE = [];
 
 async function init() {
-  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef']);
+  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'supervieur']);
   if (!USER) return;
   document.getElementById('rolePill').textContent = USER.nom + ' · ' + USER.role;
 
