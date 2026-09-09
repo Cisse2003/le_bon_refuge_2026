@@ -46,7 +46,7 @@ try {
         $hash = password_hash($sup['password'], PASSWORD_BCRYPT);
 
         $stmt = $pdo->prepare("
-            INSERT INTO utilisateurs (nom, username, password, role, actif) 
+            INSERT INTO user (nom, username, password, role, actif) 
             VALUES (:nom, :username, :password, :role, 1)
             ON DUPLICATE KEY UPDATE 
                 nom = VALUES(nom),
