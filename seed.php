@@ -1,10 +1,13 @@
 <?php
 // seed.php - À exécuter en ligne de commande : php seed.php
 
-require_once __DIR__ . '/config/db.php'; // Remplace par le chemin exact vers ta connexion PDO/DB
+require_once __DIR__ . '/includes/db.php';
 
 try {
-    // 1. Création automatique de la table audit_logs si elle n'existe pas
+    // 1. Récupération de l'instance PDO via la fonction getDB()
+    $pdo = getDB();
+
+    // 2. Création automatique de la table audit_logs si elle n'existe pas
     $sqlTable = "
     CREATE TABLE IF NOT EXISTS audit_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -23,7 +26,7 @@ try {
     $pdo->exec($sqlTable);
     echo "Table 'audit_logs' vérifiée / créée avec succès.\n";
 
-    // 2. Création ou mise à jour des 2 comptes superviseurs
+    // 3. Création ou mise à jour des 2 comptes superviseurs
     $supervisors = [
         [
             'nom' => 'Superviseur 1',
