@@ -519,6 +519,100 @@ if ($segments[0] === 'upload' && $method === 'POST') {
     jsonResponse(['url' => UPLOAD_URL . '/' . $name]);
 }
 
+// --- SUPERVISION ---
+if ($segments[0] === 'supervision') {
+    requireRole('superviseur', 'admin');
+    $action = $segments[1] ?? '';
+
+    // GET /api/supervision/logs
+    if ($method === 'GET' && $action === 'logs') {
+        $role   = $_GET['role'] ?? '';
+        $search = $_GET['search'] ?? '';
+        $date   = $_GET['date'] ?? '';
+
+        $sql = "SELECT l.*, COALESCE(u.nom, l.utilisateur) AS user_nom 
+                FROM logs l 
+                LEFT JOIN users u ON LOWER(u.username) = LOWER(l.utilisateur)
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($role)) {
+            $sql .= " AND l.role = ?";
+            $params[] = $role;
+        }
+        if (!empty($search)) {
+            $sql .= " AND (l.utilisateur LIKE ? OR l.action LIKE ? OR l.champ LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+        }
+        if (!empty($date)) {
+            $sql .= " AND DATE(l.date) = ?";
+            $params[] = $date;
+        }
+
+        $sql .= " ORDER BY l.date DESC LIMIT 200";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        $logs = array_map(function ($r) {
+            return [
+                'id'         => $r['id'],
+                'created_at' => $r['date'],
+                'username'   => $r['utilisateur'] ?? 'Système',
+                'user_nom'   => $r['user_nom'] ?? 'Inconnu',
+                'role'       => $r['role'] ?? 'N/A',
+                'action'     => $r['action'] ?? '',
+                'module'     => $r['champ'] ?? 'Général',
+                'details'    => [
+                    'orderId'        => $r['order_id'],
+                    'ancienneValeur' => $r['ancienne_valeur'],
+                    'nouvelleValeur' => $r['nouvelle_valeur']
+                ]
+            ];
+        }, $rows);
+
+        jsonResponse($logs);
+    }
+
+    // GET /api/supervision/export-audit
+    if ($method === 'GET' && $action === 'export-audit') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="journal-audit-' . date('Y-m-d') . '.csv"');
+        $out = fopen('php://output', 'w');
+        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+        fputcsv($out, ['Horodatage', 'Utilisateur', 'Rôle', 'Action', 'Module', 'Ancienne Valeur', 'Nouvelle Valeur'], ';');
+
+        $rows = $pdo->query('SELECT * FROM logs ORDER BY date DESC')->fetchAll();
+        foreach ($rows as $r) {
+            fputcsv($out, [$r['date'], $r['utilisateur'], $r['role'], $r['action'], $r['champ'], $r['ancienne_valeur'], $r['nouvelle_valeur']], ';');
+        }
+        fclose($out);
+        exit;
+    }
+
+    // GET /api/supervision/export-full
+    if ($method === 'GET' && $action === 'export-full') {
+        $dump = [
+            'exportedAt'   => now(),
+            'users'        => $pdo->query('SELECT id, username, role, nom, actif FROM users')->fetchAll(),
+            'products'     => array_map('mapProduct', $pdo->query('SELECT * FROM products')->fetchAll()),
+            'orders'       => fetchOrders($pdo),
+            'reservations' => array_map('mapReservation', $pdo->query('SELECT * FROM reservations')->fetchAll()),
+            'ingredients'  => array_map('mapIngredient', $pdo->query('SELECT * FROM ingredients')->fetchAll()),
+            'logs'         => $pdo->query('SELECT * FROM logs')->fetchAll(),
+        ];
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="dump-systeme-' . date('Y-m-d-His') . '.json"');
+        echo json_encode($dump, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    jsonError('Route supervision inconnue', 404);
+}
+
 jsonError('Route introuvable: ' . $route, 404);
 
 // ============================================================
