@@ -3,16 +3,20 @@ let PRODUITS_CACHE = [];
 let INGREDIENTS_CACHE = [];
 
 async function init() {
-  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef']);
+  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'superviseur']);
   if (!USER) return;
   document.getElementById('rolePill').textContent = USER.nom + ' · ' + USER.role;
 
-  // Certains onglets sont réservés à l'administrateur
-  if (USER.role !== 'admin') {
+  // Seuls les administrateurs et les superviseurs ont accès au panneau des utilisateurs
+  const estAdminOuSuperviseur = ['admin', 'superviseur'].includes(USER.role);
+  if (!estAdminOuSuperviseur) {
     document.querySelectorAll('[data-panel="utilisateurs"]').forEach((b) => b.remove());
   }
 
-  document.getElementById('btnDeconnexion').addEventListener('click', async () => { await apiPost('/api/auth/logout'); window.location.href = '/login.html'; });
+  document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+    await apiPost('/api/auth/logout');
+    window.location.href = '/login.html';
+  });
 
   document.querySelectorAll('#adminNav button').forEach((btn) => {
     btn.addEventListener('click', () => ouvrirPanel(btn.dataset.panel));
@@ -51,8 +55,8 @@ async function init() {
       if (document.getElementById('panel-ingredients').classList.contains('active')) chargerIngredients();
     });
   }
-  // Filet de sécurité : rafraîchit le panneau actif toutes les 20s même sans WebSocket,
-  // au cas où l'hébergeur ne relaierait pas correctement les connexions temps réel.
+
+  // Filet de sécurité : rafraîchit le panneau actif toutes les 20s
   setInterval(() => {
     const chargeurs = {
       dashboard: chargerDashboard, produits: chargerProduits, stock: chargerStock,
@@ -97,13 +101,15 @@ async function chargerDashboard() {
 // ---------------- PRODUITS ----------------
 async function chargerProduits() {
   PRODUITS_CACHE = await apiGet('/api/products');
+  const peutGererTotalement = ['admin', 'superviseur'].includes(USER.role);
+
   document.getElementById('tblProduits').innerHTML = PRODUITS_CACHE.map((p) => `
     <tr>
       <td>${p.nom}</td><td>${p.categorie}</td><td>${formatMontant(p.prix)}</td><td>${p.poste}</td>
       <td>${p.disponible ? '<span class="badge badge--ok">Oui</span>' : '<span class="badge badge--out">Non</span>'}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn--sm btn--ghost" data-edit="${p.id}">Modifier</button>
-        ${USER.role === 'admin' ? `<button class="btn btn--sm btn--danger" data-del="${p.id}">Suppr.</button>` : ''}
+        ${peutGererTotalement ? `<button class="btn btn--sm btn--danger" data-del="${p.id}">Suppr.</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -118,6 +124,8 @@ async function chargerProduits() {
 function ouvrirModaleProduit(produit) {
   const form = document.getElementById('formProduit');
   form.reset();
+  const peutGererTotalement = ['admin', 'superviseur'].includes(USER.role);
+
   document.getElementById('titreModalProduit').textContent = produit ? 'Modifier le produit' : 'Nouveau produit';
   if (produit) {
     form.id.value = produit.id;
@@ -132,13 +140,14 @@ function ouvrirModaleProduit(produit) {
   } else {
     form.disponible.checked = true;
   }
-  // Rôles restreints : uniquement la case "disponible" est modifiable
+
+  // Désactiver les champs si l'utilisateur n'est ni admin ni superviseur
   const champsAdmin = ['nom', 'categorie', 'description', 'prix', 'poste', 'options', 'photoFile'];
-  champsAdmin.forEach((c) => { if (form[c]) form[c].disabled = USER.role !== 'admin'; });
+  champsAdmin.forEach((c) => { if (form[c]) form[c].disabled = !peutGererTotalement; });
 
   document.getElementById('lignesRecette').innerHTML = '';
   (produit && Array.isArray(produit.recette) ? produit.recette : []).forEach((ligne) => ajouterLigneRecette(ligne));
-  document.getElementById('btnAjouterLigneRecette').style.display = USER.role === 'admin' ? '' : 'none';
+  document.getElementById('btnAjouterLigneRecette').style.display = peutGererTotalement ? '' : 'none';
 
   document.getElementById('modalProduit').classList.add('open');
 }
@@ -148,7 +157,7 @@ function ajouterLigneRecette(ligne) {
     document.getElementById('lignesRecette').innerHTML = '<p style="color:var(--text-dim); font-size:0.85rem;">Créez d\'abord des ingrédients dans l\'onglet "Ingrédients &amp; inventaire".</p>';
     return;
   }
-  const readOnly = USER.role !== 'admin';
+  const readOnly = !['admin', 'superviseur'].includes(USER.role);
   const div = document.createElement('div');
   div.className = 'field-row ligne-recette';
   div.style.alignItems = 'center';
@@ -190,7 +199,8 @@ async function enregistrerProduit(e) {
   };
   try {
     const id = fd.get('id');
-    if (id) await apiPut(`/api/products/${id}`, USER.role === 'admin' ? payload : { disponible: payload.disponible });
+    const peutGererTotalement = ['admin', 'superviseur'].includes(USER.role);
+    if (id) await apiPut(`/api/products/${id}`, peutGererTotalement ? payload : { disponible: payload.disponible });
     else await apiPost('/api/products', payload);
     document.getElementById('modalProduit').classList.remove('open');
     chargerProduits();
@@ -228,6 +238,8 @@ function formatQuantiteIngredient(unite, valeur) {
 
 async function chargerIngredients() {
   INGREDIENTS_CACHE = await apiGet('/api/ingredients');
+  const peutGererTotalement = ['admin', 'superviseur'].includes(USER.role);
+
   document.getElementById('tblIngredients').innerHTML = INGREDIENTS_CACHE.map((i) => `
     <tr>
       <td style="display:flex; align-items:center; gap:0.6rem;">
@@ -240,7 +252,7 @@ async function chargerIngredients() {
       <td style="white-space:nowrap;">
         <button class="btn btn--sm" data-recevoir="${i.id}">Réceptionner</button>
         <button class="btn btn--sm btn--ghost" data-edit-ing="${i.id}">Modifier</button>
-        ${USER.role === 'admin' ? `<button class="btn btn--sm btn--danger" data-del-ing="${i.id}">Suppr.</button>` : ''}
+        ${peutGererTotalement ? `<button class="btn btn--sm btn--danger" data-del-ing="${i.id}">Suppr.</button>` : ''}
       </td>
     </tr>
   `).join('') || '<tr><td colspan="5">Aucun ingrédient enregistré</td></tr>';
@@ -318,6 +330,7 @@ async function chargerCommandes() {
   const statut = document.getElementById('filtreStatutCommande').value;
   const orders = await apiGet('/api/orders' + (statut ? `?statut=${statut}` : ''));
   const badgeClasses = { NOUVELLE: 'badge--wait', EN_PREPARATION: 'badge--wait', PRETE: 'badge--ok', TERMINEE: 'badge--ok', ANNULEE: 'badge--out' };
+
   document.getElementById('tblCommandes').innerHTML = orders.map((o) => `
     <tr>
       <td>#${o.numero}</td><td>${o.type}</td>
@@ -378,7 +391,16 @@ async function chargerReservations() {
 // ---------------- UTILISATEURS ----------------
 async function chargerUtilisateurs() {
   const users = await apiGet('/api/users');
-  document.getElementById('tblUtilisateurs').innerHTML = users.map((u) => `
+
+  // FILTRE : Si l'utilisateur actuel est un simple 'admin', masquer les comptes 'superviseur'
+  const utilisateursFiltrés = users.filter((u) => {
+    if (USER.role === 'admin' && u.role === 'superviseur') {
+      return false;
+    }
+    return true;
+  });
+
+  document.getElementById('tblUtilisateurs').innerHTML = utilisateursFiltrés.map((u) => `
     <tr>
       <td>${u.nom}</td><td>${u.username}</td><td>${u.role}</td>
       <td>${u.actif ? '<span class="badge badge--ok">Oui</span>' : '<span class="badge badge--out">Non</span>'}</td>
@@ -388,7 +410,8 @@ async function chargerUtilisateurs() {
       </td>
     </tr>
   `).join('');
-  document.querySelectorAll('[data-edit-user]').forEach((b) => b.addEventListener('click', () => ouvrirModaleUtilisateur(users.find((u) => u.id === b.dataset.editUser))));
+
+  document.querySelectorAll('[data-edit-user]').forEach((b) => b.addEventListener('click', () => ouvrirModaleUtilisateur(utilisateursFiltrés.find((u) => u.id === b.dataset.editUser))));
   document.querySelectorAll('[data-del-user]').forEach((b) => b.addEventListener('click', async () => {
     if (!confirm('Supprimer cet utilisateur ?')) return;
     await apiDelete(`/api/users/${b.dataset.delUser}`);
@@ -426,7 +449,16 @@ async function enregistrerUtilisateur(e) {
 // ---------------- HISTORIQUE ----------------
 async function chargerHistorique() {
   const logs = await apiGet('/api/dashboard/logs');
-  document.getElementById('tblHistorique').innerHTML = logs.map((l) => `
+
+  // FILTRE : Si l'utilisateur connecté est un 'admin', masquer les actions commises par les 'superviseur'
+  const logsFiltrés = logs.filter((l) => {
+    if (USER.role === 'admin' && l.role === 'superviseur') {
+      return false;
+    }
+    return true;
+  });
+
+  document.getElementById('tblHistorique').innerHTML = logsFiltrés.map((l) => `
     <tr>
       <td>${new Date(l.date).toLocaleString('fr-FR')}</td>
       <td>${l.orderNumero ? '#' + l.orderNumero : '-'}</td>

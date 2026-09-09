@@ -34,7 +34,7 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
   const fd = new FormData(e.target);
   try {
     const { user } = await apiPost('/api/auth/login', { username: fd.get('username'), password: fd.get('password') });
-    const destinations = { admin: '/admin.html', chef: '/cuisine.html', assistant_chef: '/cuisine.html', serveur: '/caisse.html' };
+    const destinations = { admin: '/admin.html', chef: '/cuisine.html', assistant_chef: '/cuisine.html', serveur: '/caisse.html', superviseur: '/admin.html' };
     window.location.href = destinations[user.role] || '/';
   } catch (err) {
     toast(err.message, 'error');
