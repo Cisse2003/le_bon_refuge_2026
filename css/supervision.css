@@ -1,21 +1,63 @@
 /* ===================================================================
    LE BON REFUGE — Supervision (console d'audit)
-   À charger APRÈS /css/style.css, uniquement sur supervision.html.
-   Identité visuelle distincte : ambiance "console de surveillance"
-   (monospace, accents rouge/bleu discrets), tout en restant dans la
-   même famille que le reste de l'app (fond chalkboard, tickets).
    =================================================================== */
 
-.supervision-layout { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; }
-@media (max-width: 800px) { .supervision-layout { grid-template-columns: 1fr; } }
+.supervision-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+@media (max-width: 800px) {
+    .supervision-layout { grid-template-columns: 1fr; }
+}
 
-/* Bandeau d'avertissement : rappelle que cette page est sensible */
+/* Navigation latérale */
+.admin-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.8rem;
+    background: var(--bg-raised, #1c241e);
+    border-radius: 10px;
+    border: 1px solid rgba(246, 239, 225, 0.08);
+}
+.admin-nav button {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-dim, #a0aab0);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.admin-nav button:hover {
+    background: rgba(246, 239, 225, 0.05);
+    color: #fff;
+}
+.admin-nav button.active {
+    background: rgba(232, 163, 61, 0.15);
+    border-color: var(--accent, #e8a33d);
+    color: var(--accent, #e8a33d);
+    font-weight: bold;
+}
+
+/* Bandeau d'avertissement */
 .supervision-banner {
-    display: flex; align-items: center; gap: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
     background: rgba(208, 86, 74, 0.12);
     border: 1px solid rgba(208, 86, 74, 0.35);
-    color: var(--paper);
-    font-family: var(--font-mono);
+    color: #f1b0b0;
+    font-family: var(--font-mono, monospace);
     font-size: 0.78rem;
     padding: 0.7em 1em;
     border-radius: 8px;
@@ -23,68 +65,88 @@
 }
 .supervision-banner::before { content: "🛡️"; font-size: 1rem; }
 
-/* Indicateur "live" (pastille clignotante) pour le flux temps réel */
+/* Point Live Clignotant */
 .live-dot {
     display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--success); margin-right: 0.5em;
+    background: #5a9d6f; margin-right: 0.5em;
     animation: live-pulse 1.6s ease-in-out infinite;
 }
 @keyframes live-pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(90,157,111,0.6); }
-    50% { opacity: 0.5; box-shadow: 0 0 0 5px rgba(90,157,111,0); }
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(90, 157, 111, 0.6); }
+    50% { opacity: 0.5; box-shadow: 0 0 0 5px rgba(90, 157, 111, 0); }
 }
 
-/* Barre de filtres : regroupée visuellement comme une seule commande */
+/* Barre de filtres */
 .filter-bar {
     display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;
-    background: var(--bg-raised); border: 1px solid rgba(246,239,225,0.08);
+    background: var(--bg-raised, #1c241e); border: 1px solid rgba(246,239,225,0.08);
     border-radius: 10px; padding: 0.8rem;
 }
-.filter-bar > * { margin-bottom: 0 !important; }
 .filter-bar select,
 .filter-bar input[type="text"],
 .filter-bar input[type="date"] {
-    flex: 1; min-width: 160px; font-family: var(--font-mono); font-size: 0.85rem;
+    flex: 1; min-width: 160px; font-family: var(--font-mono, monospace); font-size: 0.85rem;
+    padding: 0.5rem 0.8rem; background: #121714; border: 1px solid rgba(246,239,225,0.15);
+    color: #fff; border-radius: 6px;
 }
-.filter-bar input[type="text"]::placeholder { color: var(--text-dim); }
 
-/* Badges de rôle : dérivés des couleurs du design system plutôt que de teintes arbitraires */
+/* Badges de rôle */
 .badge-role {
-    font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;
+    font-family: var(--font-mono, monospace); font-size: 0.68rem; text-transform: uppercase;
     letter-spacing: 0.04em; padding: 0.25em 0.65em; border-radius: 4px; white-space: nowrap;
+    display: inline-block; text-align: center;
 }
-.role-admin { background: var(--danger); color: #fff; }
-.role-serveur { background: var(--info); color: #04220e; }
-.role-chef { background: var(--accent); color: var(--text-dark); }
-.role-assistant_chef { background: var(--brown); color: var(--paper); }
-.role-superviseur { background: #8b6bb0; color: #fff; }
-.role-client { background: var(--bg-raised-2); color: var(--text-dim); }
-.role-inconnu { background: var(--bg-raised-2); color: var(--text-dim); }
+.role-admin { background: #d0564a; color: #fff; }
+.role-serveur { background: #3b82f6; color: #fff; }
+.role-chef { background: #e8a33d; color: #121714; font-weight: bold; }
+.role-assistant_chef { background: #8b5cf6; color: #fff; }
+.role-superviseur { background: #06b6d4; color: #121714; font-weight: bold; }
+.role-inconnu { background: #4b5563; color: #d1d5db; }
 
-/* Table d'audit : look "journal de bord", police mono, lignes alternées, en-tête collant */
-#panel-audit table,
-#panel-audit .card table {
-    font-family: var(--font-mono); font-size: 0.8rem;
+/* Table d'audit */
+#panel-audit table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--font-mono, monospace); font-size: 0.8rem;
 }
-#panel-audit thead th {
-    position: sticky; top: 0; background: var(--bg-raised); z-index: 1;
+#panel-audit th {
+    text-align: left; padding: 0.8rem;
+    background: #161d18; border-bottom: 2px solid rgba(246,239,225,0.1);
+    color: var(--accent, #e8a33d); font-size: 0.75rem; text-transform: uppercase;
+}
+#panel-audit td {
+    padding: 0.75rem 0.8rem; border-bottom: 1px solid rgba(246,239,225,0.05);
+    vertical-align: middle;
 }
 #panel-audit tbody tr:nth-child(even) { background: rgba(246,239,225,0.02); }
 #panel-audit tbody tr:hover { background: rgba(232,163,61,0.06); }
-#panel-audit td code {
-    font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-dim);
-    display: inline-block; max-width: 360px; overflow: hidden; text-overflow: ellipsis;
-    white-space: nowrap; vertical-align: middle;
-}
-#panel-audit .card { max-height: 70vh; overflow-y: auto; }
 
-/* Flux temps réel : présentation façon terminal de logs */
+.date-cell { color: #8a99a6; white-space: nowrap; }
+.user-sub { color: #6b7280; font-size: 0.72rem; }
+.action-title { color: #f3f4f6; font-weight: 600; }
+.module-tag { color: #9ca3af; background: rgba(255,255,255,0.05); padding: 0.2em 0.5em; border-radius: 4px; }
+
+/* Rendu propre de la colonne Détails */
+.details-container { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.detail-empty { color: #4b5563; }
+.detail-tag { font-size: 0.7rem; padding: 0.15em 0.4em; border-radius: 3px; font-weight: 600; }
+.detail-cmd { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+.detail-field { background: rgba(232, 163, 61, 0.2); color: #f59e0b; border: 1px solid rgba(232, 163, 61, 0.4); }
+.detail-change {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: #111827; padding: 0.2em 0.5em; border-radius: 4px; border: 1px solid #374151;
+}
+.val-old { color: #f87171; text-decoration: line-through; }
+.arrow { color: #9ca3af; font-size: 0.7rem; }
+.val-new { color: #34d399; font-weight: bold; }
+.detail-extra { font-size: 0.72rem; color: #9ca3af; background: rgba(255,255,255,0.03); padding: 0.1em 0.4em; border-radius: 3px; }
+
+/* Flux temps réel */
 #liveStream {
-    font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-dim);
-    background: #161d18; border: 1px solid rgba(246,239,225,0.08);
+    font-family: var(--font-mono, monospace); font-size: 0.82rem; color: #d1d5db;
+    background: #121714; border: 1px solid rgba(246,239,225,0.08); padding: 1rem; border-radius: 8px;
 }
 #liveStream .live-entry {
     padding: 0.5em 0; border-bottom: 1px dashed rgba(246,239,225,0.08);
 }
 #liveStream .live-entry:last-child { border-bottom: none; }
-#liveStream .live-entry .heure { color: var(--accent); margin-right: 0.6em; }
+#liveStream .live-entry .heure { color: var(--accent, #e8a33d); margin-right: 0.6em; }

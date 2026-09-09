@@ -1,12 +1,6 @@
-// /js/supervision.js — corrigé
-// Rappel important : cette vérification est un confort d'affichage. La vraie
-// barrière de sécurité doit être dans api/supervision.php (require_role('superviseur')
-// avant toute requête SQL). Même sans cette page, un utilisateur non-superviseur
-// qui appellerait l'API directement doit être rejeté par le serveur.
-
 document.addEventListener('DOMContentLoaded', async () => {
     const ok = await checkSupervisionAuth();
-    if (!ok) return; // on ne charge rien si la vérif a échoué (redirection déjà lancée)
+    if (!ok) return;
 
     loadAuditLogs();
 
@@ -23,7 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/login.html';
     });
 
-    // Rafraîchissement automatique (pas de WebSocket, compatible hébergement mutualisé)
     setInterval(() => {
         const actif = document.querySelector('.panel.active');
         if (!actif) return;
@@ -75,6 +68,43 @@ async function checkSupervisionAuth() {
     }
 }
 
+function formatDetailsHTML(details) {
+    if (!details || (typeof details === 'object' && Object.keys(details).length === 0)) {
+        return '<span class="detail-empty">—</span>';
+    }
+
+    if (typeof details === 'string') {
+        try { details = JSON.parse(details); } catch (e) { return `<span>${escapeHtml(details)}</span>`; }
+    }
+
+    let html = '<div class="details-container">';
+
+    if (details.commande) {
+        html += `<span class="detail-tag detail-cmd">Cmd #${escapeHtml(details.commande)}</span> `;
+    }
+    if (details.champ) {
+        html += `<span class="detail-tag detail-field">${escapeHtml(details.champ)}</span> `;
+    }
+    if (details.ancienne_valeur !== undefined || details.nouvelle_valeur !== undefined) {
+        html += `<div class="detail-change">
+            <span class="val-old">${escapeHtml(details.ancienne_valeur ?? '∅')}</span> 
+            <span class="arrow">→</span> 
+            <span class="val-new">${escapeHtml(details.nouvelle_valeur ?? '∅')}</span>
+        </div>`;
+    }
+
+    // Gestion des clés arbitraires restantes
+    const keysIgnored = ['commande', 'champ', 'ancienne_valeur', 'nouvelle_valeur', 'orderId', 'ancienneValeur', 'nouvelleValeur'];
+    Object.keys(details).forEach(key => {
+        if (!keysIgnored.includes(key) && details[key] !== null && details[key] !== '') {
+            html += `<span class="detail-extra"><strong>${escapeHtml(key)}:</strong> ${escapeHtml(details[key])}</span> `;
+        }
+    });
+
+    html += '</div>';
+    return html;
+}
+
 async function loadAuditLogs() {
     const role = document.getElementById('filterRole').value;
     const search = document.getElementById('filterKeyword').value;
@@ -99,19 +129,15 @@ async function loadAuditLogs() {
 
     logs.forEach(log => {
         const tr = document.createElement('tr');
-        // "details" peut être un objet déjà décodé (recommandé côté API) ou une chaîne JSON.
-        let details = log.details;
-        if (typeof details === 'string') {
-            try { details = JSON.parse(details); } catch (e) { /* laisse tel quel */ }
-        }
         const roleClass = 'role-' + (log.role || 'inconnu').replace(/[^a-z_]/gi, '');
+
         tr.innerHTML = `
-            <td>${escapeHtml(log.created_at)}</td>
-            <td><strong>${escapeHtml(log.username)}</strong>${log.user_nom ? ' (' + escapeHtml(log.user_nom) + ')' : ''}</td>
+            <td><span class="date-cell">${escapeHtml(log.created_at)}</span></td>
+            <td><strong>${escapeHtml(log.username)}</strong>${log.user_nom ? '<br><small class="user-sub">' + escapeHtml(log.user_nom) + '</small>' : ''}</td>
             <td><span class="badge-role ${roleClass}">${escapeHtml(log.role)}</span></td>
-            <td><strong>${escapeHtml(log.action)}</strong></td>
-            <td>${escapeHtml(log.module)}</td>
-            <td><code>${escapeHtml(JSON.stringify(details))}</code></td>
+            <td><span class="action-title">${escapeHtml(log.action)}</span></td>
+            <td><span class="module-tag">${escapeHtml(log.module)}</span></td>
+            <td>${formatDetailsHTML(log.details)}</td>
         `;
         tbody.appendChild(tr);
     });
