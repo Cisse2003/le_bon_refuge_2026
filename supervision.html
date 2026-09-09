@@ -5,16 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supervision Globale - Le Bon Refuge</title>
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        .supervision-layout { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; }
-        @media (max-width: 800px) { .supervision-layout { grid-template-columns: 1fr; } }
-        .badge-role { padding: 0.2em 0.5em; border-radius: 4px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
-        .role-admin { background: #e74c3c; color: white; }
-        .role-serveur { background: #3498db; color: white; }
-        .role-chef { background: #e67e22; color: white; }
-        .role-superviseur { background: #9b59b6; color: white; }
-        .filter-bar { display: flex; gap: 0.8rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    </style>
+    <link rel="stylesheet" href="/css/supervision.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
 <body>
 <div class="app-shell">
@@ -22,7 +14,7 @@
         <div class="container">
             <div class="logo" style="font-size:1.3rem;">
                 <img src="/images/logo.jpg" alt="" style="height:28px;width:28px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:0.4em;">
-                LE BON <span>REFUGE</span> · Supervision Globale <span class="role-pill" id="rolePill">Superviseur</span>
+                LE BON <span>REFUGE</span> · Supervision <span class="role-pill" id="rolePill">superviseur</span>
             </div>
             <div>
                 <button class="btn btn--dark btn--sm" id="btnDeconnexion">Déconnexion</button>
@@ -33,23 +25,26 @@
     <main class="app-body">
         <div class="container supervision-layout">
             <nav class="admin-nav card">
-                <button data-panel="audit" class="active">🛡️ Audit & Traçabilité</button>
-                <button data-panel="live">👁️ Activité Temps Réel</button>
-                <button data-panel="exports">📁 Sauvegardes Système</button>
+                <button data-panel="audit" class="active">🛡️ Audit &amp; Traçabilité</button>
+                <button data-panel="live">👁️ Activité en direct</button>
+                <button data-panel="exports">📁 Sauvegardes système</button>
             </nav>
 
             <div>
+                <div class="supervision-banner">Accès confidentiel — cette page journalise l'activité de tous les rôles (admin, serveurs, cuisine). Ne partagez pas ces identifiants.</div>
+
                 <!-- Panel Traçabilité Globale -->
                 <section class="panel active" id="panel-audit">
-                    <h2>Journal d'Audit Global (Toutes Actions)</h2>
+                    <h2>Journal d'audit global (toutes actions)</h2>
                     <div class="filter-bar">
                         <select id="filterRole">
                             <option value="">Tous les rôles</option>
                             <option value="admin">Administrateur</option>
                             <option value="serveur">Serveur / Caissier</option>
-                            <option value="chef">Chef / Cuisine</option>
+                            <option value="chef">Chef</option>
+                            <option value="assistant_chef">Assistant du chef</option>
                         </select>
-                        <input type="text" id="filterKeyword" placeholder="Rechercher une action, id, nom...">
+                        <input type="text" id="filterKeyword" placeholder="Rechercher une action, un identifiant, un nom...">
                         <input type="date" id="filterDate">
                     </div>
                     <div class="card">
@@ -59,9 +54,9 @@
                                 <th>Horodatage</th>
                                 <th>Utilisateur</th>
                                 <th>Rôle</th>
-                                <th>Action Réalisée</th>
-                                <th>Module / Entité</th>
-                                <th>Détails techniques / Modifs</th>
+                                <th>Action réalisée</th>
+                                <th>Module</th>
+                                <th>Détails</th>
                             </tr>
                             </thead>
                             <tbody id="tblAuditLogs"></tbody>
@@ -71,19 +66,18 @@
 
                 <!-- Panel Temps Réel -->
                 <section class="panel" id="panel-live">
-                    <h2>Flux d'activité en direct</h2>
-                    <div id="liveStream" class="card" style="max-height: 500px; overflow-y: auto;">
-                        <!-- Flux chargé dynamiquement via WebSocket ou polling -->
-                    </div>
+                    <h2><span class="live-dot"></span>Flux d'activité en direct</h2>
+                    <p style="max-width:600px;">Rafraîchi automatiquement toutes les 10 secondes (pas de WebSocket, compatible hébergement mutualisé).</p>
+                    <div id="liveStream" class="card"></div>
                 </section>
 
                 <!-- Panel Exportations -->
                 <section class="panel" id="panel-exports">
-                    <h2>Archives Systèmes & Exports Securisés</h2>
+                    <h2>Archives système &amp; exports sécurisés</h2>
                     <div class="card" style="display:flex; flex-direction:column; gap:1rem; max-width:480px;">
                         <p>Téléchargement complet des journaux et des instantanés de la base de données.</p>
-                        <a class="btn" href="/api/supervision/export-audit" target="_blank">⬇️ Télécharger Journal d'Audit (.csv)</a>
-                        <a class="btn btn--ghost" href="/api/supervision/export-full" target="_blank">⬇️ Download Complete Database Dump (.json)</a>
+                        <a class="btn" href="/api/supervision/export-audit" target="_blank">⬇️ Télécharger le journal d'audit (.csv)</a>
+                        <a class="btn btn--ghost" href="/api/supervision/export-full" target="_blank">⬇️ Télécharger l'export complet de la base (.json)</a>
                     </div>
                 </section>
             </div>

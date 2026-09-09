@@ -1,0 +1,90 @@
+/* ===================================================================
+   LE BON REFUGE — Supervision (console d'audit)
+   À charger APRÈS /css/style.css, uniquement sur supervision.html.
+   Identité visuelle distincte : ambiance "console de surveillance"
+   (monospace, accents rouge/bleu discrets), tout en restant dans la
+   même famille que le reste de l'app (fond chalkboard, tickets).
+   =================================================================== */
+
+.supervision-layout { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; }
+@media (max-width: 800px) { .supervision-layout { grid-template-columns: 1fr; } }
+
+/* Bandeau d'avertissement : rappelle que cette page est sensible */
+.supervision-banner {
+    display: flex; align-items: center; gap: 0.6rem;
+    background: rgba(208, 86, 74, 0.12);
+    border: 1px solid rgba(208, 86, 74, 0.35);
+    color: var(--paper);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 0.7em 1em;
+    border-radius: 8px;
+    margin-bottom: 1.2rem;
+}
+.supervision-banner::before { content: "🛡️"; font-size: 1rem; }
+
+/* Indicateur "live" (pastille clignotante) pour le flux temps réel */
+.live-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success); margin-right: 0.5em;
+    animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(90,157,111,0.6); }
+    50% { opacity: 0.5; box-shadow: 0 0 0 5px rgba(90,157,111,0); }
+}
+
+/* Barre de filtres : regroupée visuellement comme une seule commande */
+.filter-bar {
+    display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;
+    background: var(--bg-raised); border: 1px solid rgba(246,239,225,0.08);
+    border-radius: 10px; padding: 0.8rem;
+}
+.filter-bar > * { margin-bottom: 0 !important; }
+.filter-bar select,
+.filter-bar input[type="text"],
+.filter-bar input[type="date"] {
+    flex: 1; min-width: 160px; font-family: var(--font-mono); font-size: 0.85rem;
+}
+.filter-bar input[type="text"]::placeholder { color: var(--text-dim); }
+
+/* Badges de rôle : dérivés des couleurs du design system plutôt que de teintes arbitraires */
+.badge-role {
+    font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.04em; padding: 0.25em 0.65em; border-radius: 4px; white-space: nowrap;
+}
+.role-admin { background: var(--danger); color: #fff; }
+.role-serveur { background: var(--info); color: #04220e; }
+.role-chef { background: var(--accent); color: var(--text-dark); }
+.role-assistant_chef { background: var(--brown); color: var(--paper); }
+.role-superviseur { background: #8b6bb0; color: #fff; }
+.role-client { background: var(--bg-raised-2); color: var(--text-dim); }
+.role-inconnu { background: var(--bg-raised-2); color: var(--text-dim); }
+
+/* Table d'audit : look "journal de bord", police mono, lignes alternées, en-tête collant */
+#panel-audit table,
+#panel-audit .card table {
+    font-family: var(--font-mono); font-size: 0.8rem;
+}
+#panel-audit thead th {
+    position: sticky; top: 0; background: var(--bg-raised); z-index: 1;
+}
+#panel-audit tbody tr:nth-child(even) { background: rgba(246,239,225,0.02); }
+#panel-audit tbody tr:hover { background: rgba(232,163,61,0.06); }
+#panel-audit td code {
+    font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-dim);
+    display: inline-block; max-width: 360px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; vertical-align: middle;
+}
+#panel-audit .card { max-height: 70vh; overflow-y: auto; }
+
+/* Flux temps réel : présentation façon terminal de logs */
+#liveStream {
+    font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-dim);
+    background: #161d18; border: 1px solid rgba(246,239,225,0.08);
+}
+#liveStream .live-entry {
+    padding: 0.5em 0; border-bottom: 1px dashed rgba(246,239,225,0.08);
+}
+#liveStream .live-entry:last-child { border-bottom: none; }
+#liveStream .live-entry .heure { color: var(--accent); margin-right: 0.6em; }
