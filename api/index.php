@@ -56,10 +56,22 @@ if ($segments[0] === 'auth') {
             'role' => $user['role'],
             'nom' => $user['nom'],
         ];
-        logAction(['utilisateur' => $user['username'], 'role' => $user['role'], 'action' => 'CONNEXION']);
+        logAction([
+            'utilisateur' => $user['username'],
+            'role'        => $user['role'],
+            'action'      => 'CONNEXION'
+        ]);
         jsonResponse(['user' => $_SESSION['user']]);
     }
     if ($method === 'POST' && $action === 'logout') {
+        $user = currentUser();
+        if ($user) {
+            logAction([
+                'utilisateur' => $user['username'],
+                'role'        => $user['role'],
+                'action'      => 'DECONNEXION'
+            ]);
+        }
         $_SESSION = [];
         session_destroy();
         jsonResponse(['ok' => true]);
@@ -80,13 +92,14 @@ if ($segments[0] === 'products') {
         jsonResponse($out);
     }
     if ($method === 'POST' && !$id) {
-        requireRole('admin');
+        $admin = requireRole('admin');
         $id = uuid();
+        $nom = $input['nom'] ?? '';
         $stmt = $pdo->prepare('INSERT INTO products (id, categorie, nom, description, prix, photo, poste, options_json, disponible, recette_json) VALUES (?,?,?,?,?,?,?,?,?,?)');
         $stmt->execute([
             $id,
             $input['categorie'] ?? 'Plats',
-            $input['nom'] ?? '',
+            $nom,
             $input['description'] ?? '',
             (int)($input['prix'] ?? 0),
             $input['photo'] ?? '',
@@ -96,12 +109,21 @@ if ($segments[0] === 'products') {
             json_encode($input['recette'] ?? [], JSON_UNESCAPED_UNICODE),
         ]);
         $pdo->prepare('INSERT INTO stock (product_id, quantite, seuil_alerte) VALUES (?, 50, 10)')->execute([$id]);
+
+        logAction([
+            'utilisateur'    => $admin['username'],
+            'role'           => $admin['role'],
+            'action'         => 'CREATION_PRODUIT',
+            'champ'          => 'produits',
+            'nouvelleValeur' => $nom
+        ]);
+
         $row = $pdo->prepare('SELECT * FROM products WHERE id = ?');
         $row->execute([$id]);
         jsonResponse(mapProduct($row->fetch()), 201);
     }
     if ($method === 'PUT' && $id) {
-        requireAuth();
+        $user = requireAuth();
         $fields = [];
         $params = [];
         foreach (['categorie','nom','description','photo','poste'] as $f) {
@@ -114,13 +136,35 @@ if ($segments[0] === 'products') {
         if (!$fields) jsonError('Rien à modifier');
         $params[] = $id;
         $pdo->prepare('UPDATE products SET ' . implode(', ', $fields) . ' WHERE id = ?')->execute($params);
+
+        logAction([
+            'utilisateur' => $user['username'],
+            'role'        => $user['role'],
+            'action'      => 'MODIFICATION_PRODUIT',
+            'champ'       => 'produits',
+            'nouvelleValeur' => $input['nom'] ?? "ID: $id"
+        ]);
+
         $row = $pdo->prepare('SELECT * FROM products WHERE id = ?');
         $row->execute([$id]);
         jsonResponse(mapProduct($row->fetch()));
     }
     if ($method === 'DELETE' && $id) {
-        requireRole('admin');
+        $admin = requireRole('admin');
+        $stmt = $pdo->prepare('SELECT nom FROM products WHERE id = ?');
+        $stmt->execute([$id]);
+        $prod = $stmt->fetch();
+
         $pdo->prepare('DELETE FROM products WHERE id = ?')->execute([$id]);
+
+        logAction([
+            'utilisateur'    => $admin['username'],
+            'role'           => $admin['role'],
+            'action'         => 'SUPPRESSION_PRODUIT',
+            'champ'          => 'produits',
+            'ancienneValeur' => $prod['nom'] ?? $id
+        ]);
+
         jsonResponse(['ok' => true]);
     }
     jsonError('Route products inconnue', 404);
@@ -132,26 +176,22 @@ if ($segments[0] === 'orders') {
     $sub = $segments[2] ?? null;
     $itemId = $segments[3] ?? null;
 
-    // GET /api/orders
     if ($method === 'GET' && !$id) {
         requireAuth();
         $orders = fetchOrders($pdo);
         jsonResponse($orders);
     }
-    // GET /api/orders/public/:id
     if ($method === 'GET' && $id === 'public' && isset($segments[2])) {
         $order = fetchOrderById($pdo, $segments[2]);
         if (!$order) jsonError('Commande introuvable', 404);
         jsonResponse($order);
     }
-    // GET /api/orders/:id
     if ($method === 'GET' && $id && $id !== 'public' && !$sub) {
         requireAuth();
         $order = fetchOrderById($pdo, $id);
         if (!$order) jsonError('Commande introuvable', 404);
         jsonResponse($order);
     }
-    // POST /api/orders
     if ($method === 'POST' && !$id) {
         $items = $input['items'] ?? [];
         if (empty($items)) jsonError('Aucun article');
@@ -183,21 +223,28 @@ if ($segments[0] === 'orders') {
             now(),
         ]);
         insertOrderItems($pdo, $orderId, $items);
-        // Déduction stock théorique (produits finis)
         foreach ($items as $it) {
             if (!empty($it['productId'])) {
                 $pdo->prepare('UPDATE stock SET quantite = GREATEST(0, quantite - ?) WHERE product_id = ?')
                     ->execute([(int)$it['quantite'], $it['productId']]);
             }
         }
-        // Déduction ingrédients selon recettes
         deduireIngredients($pdo, $items);
+
+        logAction([
+            'orderId'        => $orderId,
+            'orderNumero'    => $numero,
+            'utilisateur'    => $user['username'] ?? 'Client',
+            'role'           => $user['role'] ?? 'client',
+            'action'         => 'CREATION_COMMANDE',
+            'nouvelleValeur' => "Total: $total €"
+        ]);
+
         $order = fetchOrderById($pdo, $orderId);
         jsonResponse($order, 201);
     }
-    // PATCH /api/orders/:id
     if ($method === 'PATCH' && $id && !$sub) {
-        requireAuth();
+        $user = requireAuth();
         $order = fetchOrderById($pdo, $id);
         if (!$order) jsonError('Commande introuvable', 404);
         $fields = []; $params = [];
@@ -206,7 +253,6 @@ if ($segments[0] === 'orders') {
         if (isset($input['clientNom'])) { $fields[] = 'client_nom = ?'; $params[] = $input['clientNom']; }
         if (isset($input['clientTel'])) { $fields[] = 'client_tel = ?'; $params[] = $input['clientTel']; }
         if (isset($input['items']) && is_array($input['items'])) {
-            // Remplacer les items
             $pdo->prepare('DELETE FROM order_items WHERE order_id = ?')->execute([$id]);
             $total = 0;
             foreach ($input['items'] as &$it) {
@@ -223,35 +269,57 @@ if ($segments[0] === 'orders') {
             $fields[] = 'date_modif = ?'; $params[] = now();
             $params[] = $id;
             $pdo->prepare('UPDATE orders SET ' . implode(', ', $fields) . ' WHERE id = ?')->execute($params);
+
+            logAction([
+                'orderId'     => $id,
+                'orderNumero' => $order['numero'],
+                'utilisateur' => $user['username'],
+                'role'        => $user['role'],
+                'action'      => 'MODIFICATION_COMMANDE'
+            ]);
         }
         jsonResponse(fetchOrderById($pdo, $id));
     }
-    // POST /api/orders/:id/envoyer-cuisine
     if ($method === 'POST' && $id && $sub === 'envoyer-cuisine') {
-        requireAuth();
+        $user = requireAuth();
+        $order = fetchOrderById($pdo, $id);
         $pdo->prepare('UPDATE orders SET envoi_cuisine = 1, date_envoi_cuisine = ?, statut = IF(statut = "NOUVELLE", "CONFIRMEE", statut), date_modif = ? WHERE id = ?')
             ->execute([now(), now(), $id]);
-        $user = currentUser();
-        logAction(['orderId' => $id, 'utilisateur' => $user['username'], 'role' => $user['role'], 'action' => 'ENVOI_CUISINE']);
+
+        logAction([
+            'orderId'     => $id,
+            'orderNumero' => $order['numero'] ?? null,
+            'utilisateur' => $user['username'],
+            'role'        => $user['role'],
+            'action'      => 'ENVOI_CUISINE'
+        ]);
         jsonResponse(fetchOrderById($pdo, $id));
     }
-    // PATCH /api/orders/:id/statut
     if ($method === 'PATCH' && $id && $sub === 'statut') {
-        requireAuth();
+        $user = requireAuth();
         $statut = $input['statut'] ?? '';
         $allowed = ['NOUVELLE','CONFIRMEE','EN_PREPARATION','PRETE','TERMINEE','ANNULEE'];
         if (!in_array($statut, $allowed, true)) jsonError('Statut invalide');
+
+        $order = fetchOrderById($pdo, $id);
         $pdo->prepare('UPDATE orders SET statut = ?, date_modif = ? WHERE id = ?')->execute([$statut, now(), $id]);
-        $user = currentUser();
-        logAction(['orderId' => $id, 'utilisateur' => $user['username'], 'role' => $user['role'], 'action' => 'CHANGEMENT_STATUT', 'champ' => 'statut', 'nouvelleValeur' => $statut]);
+
+        logAction([
+            'orderId'        => $id,
+            'orderNumero'    => $order['numero'] ?? null,
+            'utilisateur'    => $user['username'],
+            'role'           => $user['role'],
+            'action'         => 'CHANGEMENT_STATUT',
+            'champ'          => 'statut',
+            'ancienneValeur' => $order['statut'] ?? '',
+            'nouvelleValeur' => $statut
+        ]);
         jsonResponse(fetchOrderById($pdo, $id));
     }
-    // PATCH /api/orders/:id/items/:itemId/statut
     if ($method === 'PATCH' && $id && $sub === 'items' && $itemId && ($segments[4] ?? '') === 'statut') {
         requireAuth();
         $statutItem = $input['statutItem'] ?? $input['statut'] ?? 'ATTENTE';
         $pdo->prepare('UPDATE order_items SET statut_item = ? WHERE id = ? AND order_id = ?')->execute([$statutItem, $itemId, $id]);
-        // Si tous les items sont PRETE → commande PRETE
         $rest = $pdo->prepare('SELECT COUNT(*) FROM order_items WHERE order_id = ? AND statut_item != "PRETE"');
         $rest->execute([$id]);
         if ((int)$rest->fetchColumn() === 0) {
@@ -261,10 +329,21 @@ if ($segments[0] === 'orders') {
         }
         jsonResponse(fetchOrderById($pdo, $id));
     }
-    // DELETE /api/orders/:id
     if ($method === 'DELETE' && $id && !$sub) {
-        requireRole('chef', 'assistant_chef', 'admin');
+        $user = requireRole('chef', 'assistant_chef', 'admin');
+        $order = fetchOrderById($pdo, $id);
+
         $pdo->prepare('DELETE FROM orders WHERE id = ?')->execute([$id]);
+
+        logAction([
+            'orderId'        => $id,
+            'orderNumero'    => $order['numero'] ?? null,
+            'utilisateur'    => $user['username'],
+            'role'           => $user['role'],
+            'action'         => 'SUPPRESSION_COMMANDE',
+            'ancienneValeur' => "Commande #" . ($order['numero'] ?? $id)
+        ]);
+
         jsonResponse(['ok' => true]);
     }
     jsonError('Route orders inconnue', 404);
@@ -295,9 +374,16 @@ if ($segments[0] === 'reservations') {
         jsonResponse(array_map('mapReservation', $rows));
     }
     if ($method === 'PATCH' && $id) {
-        requireAuth();
+        $user = requireAuth();
         if (isset($input['statut'])) {
             $pdo->prepare('UPDATE reservations SET statut = ? WHERE id = ?')->execute([$input['statut'], $id]);
+            logAction([
+                'utilisateur'    => $user['username'],
+                'role'           => $user['role'],
+                'action'         => 'STATUT_RESERVATION',
+                'champ'          => 'reservations',
+                'nouvelleValeur' => $input['statut']
+            ]);
         }
         $row = $pdo->prepare('SELECT * FROM reservations WHERE id = ?');
         $row->execute([$id]);
@@ -314,20 +400,35 @@ if ($segments[0] === 'stock') {
         $rows = $pdo->query('SELECT s.*, p.nom FROM stock s LEFT JOIN products p ON p.id = s.product_id')->fetchAll();
         $out = array_map(function ($r) {
             return [
-                'productId' => $r['product_id'],
-                'nom' => $r['nom'] ?? '',
-                'quantite' => (int)$r['quantite'],
-                'seuilAlerte' => (int)$r['seuil_alerte'],
+                'productId'  => $r['product_id'],
+                'nom'        => $r['nom'] ?? '',
+                'quantite'   => (int)$r['quantite'],
+                'seuilAlerte'=> (int)$r['seuil_alerte'],
             ];
         }, $rows);
         jsonResponse($out);
     }
     if ($method === 'PUT' && $productId) {
-        requireRole('chef', 'assistant_chef', 'admin');
+        $user = requireRole('chef', 'assistant_chef', 'admin');
         $q = (int)($input['quantite'] ?? 0);
         $s = (int)($input['seuilAlerte'] ?? $input['seuil_alerte'] ?? 10);
+
+        $stmt = $pdo->prepare('SELECT quantite FROM stock WHERE product_id = ?');
+        $stmt->execute([$productId]);
+        $oldQte = $stmt->fetchColumn();
+
         $pdo->prepare('INSERT INTO stock (product_id, quantite, seuil_alerte) VALUES (?,?,?) ON DUPLICATE KEY UPDATE quantite = VALUES(quantite), seuil_alerte = VALUES(seuil_alerte)')
             ->execute([$productId, $q, $s]);
+
+        logAction([
+            'utilisateur'    => $user['username'],
+            'role'           => $user['role'],
+            'action'         => 'MISE_A_JOUR_STOCK',
+            'champ'          => 'stock',
+            'ancienneValeur' => $oldQte !== false ? (string)$oldQte : '0',
+            'nouvelleValeur' => (string)$q
+        ]);
+
         jsonResponse(['productId' => $productId, 'quantite' => $q, 'seuilAlerte' => $s]);
     }
     jsonError('Route stock inconnue', 404);
@@ -342,32 +443,82 @@ if ($segments[0] === 'ingredients') {
         jsonResponse(array_map('mapIngredient', $rows));
     }
     if ($method === 'POST' && !$id) {
-        requireRole('admin', 'chef', 'assistant_chef');
+        $user = requireRole('admin', 'chef', 'assistant_chef');
         $id = uuid();
+        $nom = $input['nom'] ?? '';
         $pdo->prepare('INSERT INTO ingredients (id, nom, unite, quantite_stock, seuil_alerte, photo) VALUES (?,?,?,?,?,?)')
-            ->execute([$id, $input['nom'] ?? '', $input['unite'] ?? 'g', (float)($input['quantiteStock'] ?? 0), (float)($input['seuilAlerte'] ?? 0), $input['photo'] ?? '']);
+            ->execute([$id, $nom, $input['unite'] ?? 'g', (float)($input['quantiteStock'] ?? 0), (float)($input['seuilAlerte'] ?? 0), $input['photo'] ?? '']);
+
+        logAction([
+            'utilisateur'    => $user['username'],
+            'role'           => $user['role'],
+            'action'         => 'CREATION_INGREDIENT',
+            'champ'          => 'ingredients',
+            'nouvelleValeur' => $nom
+        ]);
+
         $row = $pdo->prepare('SELECT * FROM ingredients WHERE id = ?');
         $row->execute([$id]);
         jsonResponse(mapIngredient($row->fetch()), 201);
     }
     if ($method === 'PUT' && $id) {
-        requireRole('admin', 'chef', 'assistant_chef');
-        $pdo->prepare('UPDATE ingredients SET nom=?, unite=?, quantite_stock=?, seuil_alerte=?, photo=? WHERE id=?')
-            ->execute([
-                $input['nom'] ?? '',
-                $input['unite'] ?? 'g',
-                (float)($input['quantiteStock'] ?? $input['quantite_stock'] ?? 0),
-                (float)($input['seuilAlerte'] ?? $input['seuil_alerte'] ?? 0),
-                $input['photo'] ?? '',
-                $id,
+        $user = requireRole('admin', 'chef', 'assistant_chef');
+
+        $stmt = $pdo->prepare('SELECT * FROM ingredients WHERE id = ?');
+        $stmt->execute([$id]);
+        $ing = $stmt->fetch();
+
+        $ajouter = isset($input['ajouter']) ? (float)$input['ajouter'] : null;
+        if ($ajouter !== null && $ajouter > 0) {
+            $nouveauStock = (float)$ing['quantite_stock'] + $ajouter;
+            $pdo->prepare('UPDATE ingredients SET quantite_stock = ? WHERE id = ?')->execute([$nouveauStock, $id]);
+            logAction([
+                'utilisateur'    => $user['username'],
+                'role'           => $user['role'],
+                'action'         => 'RECEPTION_INGREDIENT',
+                'champ'          => $ing['nom'],
+                'ancienneValeur' => (string)$ing['quantite_stock'],
+                'nouvelleValeur' => (string)$nouveauStock
             ]);
+        } else {
+            $pdo->prepare('UPDATE ingredients SET nom=?, unite=?, quantite_stock=?, seuil_alerte=?, photo=? WHERE id=?')
+                ->execute([
+                    $input['nom'] ?? $ing['nom'],
+                    $input['unite'] ?? $ing['unite'],
+                    (float)($input['quantiteStock'] ?? $input['quantite_stock'] ?? $ing['quantite_stock']),
+                    (float)($input['seuilAlerte'] ?? $input['seuil_alerte'] ?? $ing['seuil_alerte']),
+                    $input['photo'] ?? $ing['photo'],
+                    $id,
+                ]);
+            logAction([
+                'utilisateur'    => $user['username'],
+                'role'           => $user['role'],
+                'action'         => 'MODIFICATION_INGREDIENT',
+                'champ'          => 'ingredients',
+                'nouvelleValeur' => $input['nom'] ?? $ing['nom']
+            ]);
+        }
+
         $row = $pdo->prepare('SELECT * FROM ingredients WHERE id = ?');
         $row->execute([$id]);
         jsonResponse(mapIngredient($row->fetch()));
     }
     if ($method === 'DELETE' && $id) {
-        requireRole('admin');
+        $admin = requireRole('admin');
+        $stmt = $pdo->prepare('SELECT nom FROM ingredients WHERE id = ?');
+        $stmt->execute([$id]);
+        $ing = $stmt->fetch();
+
         $pdo->prepare('DELETE FROM ingredients WHERE id = ?')->execute([$id]);
+
+        logAction([
+            'utilisateur'    => $admin['username'],
+            'role'           => $admin['role'],
+            'action'         => 'SUPPRESSION_INGREDIENT',
+            'champ'          => 'ingredients',
+            'ancienneValeur' => $ing['nom'] ?? $id
+        ]);
+
         jsonResponse(['ok' => true]);
     }
     jsonError('Route ingredients inconnue', 404);
@@ -377,29 +528,45 @@ if ($segments[0] === 'ingredients') {
 if ($segments[0] === 'users') {
     $id = $segments[1] ?? null;
     if ($method === 'GET' && !$id) {
-        requireRole('admin');
+        requireRole('admin', 'superviseur');
         $rows = $pdo->query('SELECT id, username, role, nom, actif, date_creation FROM users ORDER BY username')->fetchAll();
         jsonResponse(array_map(function ($u) {
             return [
-                'id' => $u['id'],
-                'username' => $u['username'],
-                'role' => $u['role'],
-                'nom' => $u['nom'],
-                'actif' => (bool)$u['actif'],
+                'id'           => $u['id'],
+                'username'     => $u['username'],
+                'role'         => $u['role'],
+                'nom'          => $u['nom'],
+                'actif'        => (bool)$u['actif'],
                 'dateCreation' => $u['date_creation'],
             ];
         }, $rows));
     }
     if ($method === 'POST' && !$id) {
-        requireRole('admin');
+        $admin = requireRole('admin');
         $id = uuid();
+        $username = $input['username'] ?? '';
+        $role = $input['role'] ?? 'serveur';
         $hash = password_hash($input['password'] ?? 'changeme', PASSWORD_BCRYPT);
+
         $pdo->prepare('INSERT INTO users (id, username, password_hash, role, nom, actif) VALUES (?,?,?,?,?,1)')
-            ->execute([$id, $input['username'] ?? '', $hash, $input['role'] ?? 'serveur', $input['nom'] ?? '']);
-        jsonResponse(['id' => $id, 'username' => $input['username'], 'role' => $input['role'] ?? 'serveur', 'nom' => $input['nom'] ?? '', 'actif' => true], 201);
+            ->execute([$id, $username, $hash, $role, $input['nom'] ?? '']);
+
+        logAction([
+            'utilisateur'    => $admin['username'],
+            'role'           => $admin['role'],
+            'action'         => 'CREATION_UTILISATEUR',
+            'champ'          => 'utilisateurs',
+            'nouvelleValeur' => "$username ($role)"
+        ]);
+
+        jsonResponse(['id' => $id, 'username' => $username, 'role' => $role, 'nom' => $input['nom'] ?? '', 'actif' => true], 201);
     }
     if ($method === 'PUT' && $id) {
-        requireRole('admin');
+        $admin = requireRole('admin');
+        $stmt = $pdo->prepare('SELECT username, role FROM users WHERE id = ?');
+        $stmt->execute([$id]);
+        $oldUser = $stmt->fetch();
+
         $fields = []; $params = [];
         if (isset($input['nom'])) { $fields[] = 'nom = ?'; $params[] = $input['nom']; }
         if (isset($input['role'])) { $fields[] = 'role = ?'; $params[] = $input['role']; }
@@ -408,12 +575,34 @@ if ($segments[0] === 'users') {
         if ($fields) {
             $params[] = $id;
             $pdo->prepare('UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?')->execute($params);
+
+            logAction([
+                'utilisateur'    => $admin['username'],
+                'role'           => $admin['role'],
+                'action'         => 'MODIFICATION_UTILISATEUR',
+                'champ'          => 'utilisateurs',
+                'ancienneValeur' => $oldUser['username'] . ' (' . $oldUser['role'] . ')',
+                'nouvelleValeur' => ($input['username'] ?? $oldUser['username']) . ' (' . ($input['role'] ?? $oldUser['role']) . ')'
+            ]);
         }
         jsonResponse(['ok' => true]);
     }
     if ($method === 'DELETE' && $id) {
-        requireRole('admin');
+        $admin = requireRole('admin');
+        $stmt = $pdo->prepare('SELECT username FROM users WHERE id = ?');
+        $stmt->execute([$id]);
+        $u = $stmt->fetch();
+
         $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
+
+        logAction([
+            'utilisateur'    => $admin['username'],
+            'role'           => $admin['role'],
+            'action'         => 'SUPPRESSION_UTILISATEUR',
+            'champ'          => 'utilisateurs',
+            'ancienneValeur' => $u['username'] ?? $id
+        ]);
+
         jsonResponse(['ok' => true]);
     }
     jsonError('Route users inconnue', 404);
@@ -438,12 +627,12 @@ if ($segments[0] === 'dashboard') {
         $topProduits = array_map(fn($r) => ['nom' => $r['nom'], 'quantite' => (int)$r['qty']], $top);
 
         jsonResponse([
-            'caJour' => $caJour,
-            'caSemaine' => $caSemaine,
-            'caMois' => $caMois,
-            'nbCommandesJour' => $nbJour,
-            'panierMoyen' => $panierMoyen,
-            'topProduits' => $topProduits,
+            'caJour'           => $caJour,
+            'caSemaine'        => $caSemaine,
+            'caMois'           => $caMois,
+            'nbCommandesJour'  => $nbJour,
+            'panierMoyen'      => $panierMoyen,
+            'topProduits'      => $topProduits,
         ]);
     }
     if ($method === 'GET' && $action === 'logs') {
@@ -451,14 +640,14 @@ if ($segments[0] === 'dashboard') {
         $rows = $pdo->query('SELECT * FROM logs ORDER BY date DESC LIMIT 200')->fetchAll();
         $out = array_map(function ($r) {
             return [
-                'id' => $r['id'],
-                'orderId' => $r['order_id'],
-                'orderNumero' => $r['order_numero'],
-                'date' => $r['date'],
-                'utilisateur' => $r['utilisateur'],
-                'role' => $r['role'],
-                'action' => $r['action'],
-                'champ' => $r['champ'],
+                'id'             => $r['id'],
+                'orderId'        => $r['order_id'],
+                'orderNumero'    => $r['order_numero'],
+                'date'           => $r['date'],
+                'utilisateur'    => $r['utilisateur'],
+                'role'           => $r['role'],
+                'action'         => $r['action'],
+                'champ'          => $r['champ'],
                 'ancienneValeur' => $r['ancienne_valeur'],
                 'nouvelleValeur' => $r['nouvelle_valeur'],
             ];
@@ -471,15 +660,15 @@ if ($segments[0] === 'dashboard') {
 // --- EXPORT ---
 if ($segments[0] === 'export') {
     $action = $segments[1] ?? '';
-    requireRole('admin', 'chef', 'assistant_chef');
+    requireRole('admin', 'chef', 'assistant_chef', 'superviseur');
     if ($method === 'GET' && $action === 'json') {
         $data = [
-            'exportedAt' => now(),
-            'products' => array_map('mapProduct', $pdo->query('SELECT * FROM products')->fetchAll()),
-            'orders' => fetchOrders($pdo),
+            'exportedAt'   => now(),
+            'products'     => array_map('mapProduct', $pdo->query('SELECT * FROM products')->fetchAll()),
+            'orders'       => fetchOrders($pdo),
             'reservations' => array_map('mapReservation', $pdo->query('SELECT * FROM reservations')->fetchAll()),
-            'ingredients' => array_map('mapIngredient', $pdo->query('SELECT * FROM ingredients')->fetchAll()),
-            'users' => $pdo->query('SELECT id, username, role, nom, actif FROM users')->fetchAll(),
+            'ingredients'  => array_map('mapIngredient', $pdo->query('SELECT * FROM ingredients')->fetchAll()),
+            'users'        => $pdo->query('SELECT id, username, role, nom, actif FROM users')->fetchAll(),
         ];
         header('Content-Type: application/json');
         header('Content-Disposition: attachment; filename="sauvegarde-le-bon-refuge-' . date('Y-m-d-His') . '.json"');
@@ -487,11 +676,10 @@ if ($segments[0] === 'export') {
         exit;
     }
     if ($method === 'GET' && $action === 'excel') {
-        // Export CSV simple (compatible Excel) - multi-feuilles non supporté sans lib externe
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="export-le-bon-refuge-' . date('Y-m-d') . '.csv"');
         $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
         fputcsv($out, ['Type', 'ID', 'Numero', 'Date', 'Statut', 'Total', 'Client', 'Details'], ';');
         $orders = fetchOrders($pdo);
         foreach ($orders as $o) {
@@ -524,7 +712,6 @@ if ($segments[0] === 'supervision') {
     requireRole('superviseur', 'admin');
     $action = $segments[1] ?? '';
 
-    // GET /api/supervision/logs
     if ($method === 'GET' && $action === 'logs') {
         $role   = $_GET['role'] ?? '';
         $search = $_GET['search'] ?? '';
@@ -577,12 +764,11 @@ if ($segments[0] === 'supervision') {
         jsonResponse($logs);
     }
 
-    // GET /api/supervision/export-audit
     if ($method === 'GET' && $action === 'export-audit') {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="journal-audit-' . date('Y-m-d') . '.csv"');
         $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
         fputcsv($out, ['Horodatage', 'Utilisateur', 'Rôle', 'Action', 'Module', 'Ancienne Valeur', 'Nouvelle Valeur'], ';');
 
         $rows = $pdo->query('SELECT * FROM logs ORDER BY date DESC')->fetchAll();
@@ -593,7 +779,6 @@ if ($segments[0] === 'supervision') {
         exit;
     }
 
-    // GET /api/supervision/export-full
     if ($method === 'GET' && $action === 'export-full') {
         $dump = [
             'exportedAt'   => now(),
@@ -621,40 +806,40 @@ jsonError('Route introuvable: ' . $route, 404);
 
 function mapProduct(array $r): array {
     return [
-        'id' => $r['id'],
-        'categorie' => $r['categorie'],
-        'nom' => $r['nom'],
+        'id'          => $r['id'],
+        'categorie'   => $r['categorie'],
+        'nom'         => $r['nom'],
         'description' => $r['description'],
-        'prix' => (int)$r['prix'],
-        'photo' => $r['photo'] ?? '',
-        'poste' => $r['poste'],
-        'options' => json_decode($r['options_json'] ?? '[]', true) ?: [],
-        'disponible' => (bool)$r['disponible'],
-        'recette' => json_decode($r['recette_json'] ?? '[]', true) ?: [],
+        'prix'        => (int)$r['prix'],
+        'photo'       => $r['photo'] ?? '',
+        'poste'       => $r['poste'],
+        'options'     => json_decode($r['options_json'] ?? '[]', true) ?: [],
+        'disponible'  => (bool)$r['disponible'],
+        'recette'     => json_decode($r['recette_json'] ?? '[]', true) ?: [],
     ];
 }
 
 function mapIngredient(array $r): array {
     return [
-        'id' => $r['id'],
-        'nom' => $r['nom'],
-        'unite' => $r['unite'],
+        'id'            => $r['id'],
+        'nom'           => $r['nom'],
+        'unite'         => $r['unite'],
         'quantiteStock' => (float)$r['quantite_stock'],
-        'seuilAlerte' => (float)$r['seuil_alerte'],
-        'photo' => $r['photo'] ?? '',
+        'seuilAlerte'   => (float)$r['seuil_alerte'],
+        'photo'         => $r['photo'] ?? '',
     ];
 }
 
 function mapReservation(array $r): array {
     return [
-        'id' => $r['id'],
-        'nom' => $r['nom'],
-        'tel' => $r['tel'],
-        'date' => $r['date_reservation'],
-        'heure' => substr($r['heure'], 0, 5),
-        'personnes' => (int)$r['personnes'],
-        'notes' => $r['notes'],
-        'statut' => $r['statut'],
+        'id'           => $r['id'],
+        'nom'          => $r['nom'],
+        'tel'          => $r['tel'],
+        'date'         => $r['date_reservation'],
+        'heure'        => substr($r['heure'], 0, 5),
+        'personnes'    => (int)$r['personnes'],
+        'notes'        => $r['notes'],
+        'statut'       => $r['statut'],
         'dateCreation' => $r['date_creation'],
     ];
 }
@@ -701,31 +886,31 @@ function mapOrder(PDO $pdo, array $o): array {
     $items->execute([$o['id']]);
     $itemRows = $items->fetchAll();
     return [
-        'id' => $o['id'],
-        'numero' => (int)$o['numero'],
-        'type' => $o['type'],
-        'statut' => $o['statut'],
-        'table' => $o['table_num'],
-        'clientNom' => $o['client_nom'],
-        'clientTel' => $o['client_tel'],
-        'notes' => $o['notes'],
-        'total' => (int)$o['total'],
-        'envoiCuisine' => (bool)$o['envoi_cuisine'],
-        'servedBy' => $o['served_by_id'] ? ['id' => $o['served_by_id'], 'nom' => $o['served_by_nom']] : null,
-        'dateCreation' => $o['date_creation'],
-        'dateModif' => $o['date_modif'],
+        'id'               => $o['id'],
+        'numero'           => (int)$o['numero'],
+        'type'             => $o['type'],
+        'statut'           => $o['statut'],
+        'table'            => $o['table_num'],
+        'clientNom'        => $o['client_nom'],
+        'clientTel'        => $o['client_tel'],
+        'notes'            => $o['notes'],
+        'total'            => (int)$o['total'],
+        'envoiCuisine'     => (bool)$o['envoi_cuisine'],
+        'servedBy'         => $o['served_by_id'] ? ['id' => $o['served_by_id'], 'nom' => $o['served_by_nom']] : null,
+        'dateCreation'     => $o['date_creation'],
+        'dateModif'        => $o['date_modif'],
         'dateEnvoiCuisine' => $o['date_envoi_cuisine'],
-        'items' => array_map(function ($it) {
+        'items'            => array_map(function ($it) {
             return [
-                'id' => $it['id'],
-                'productId' => $it['product_id'],
-                'nom' => $it['nom'],
-                'prix' => (int)$it['prix'],
-                'quantite' => (int)$it['quantite'],
-                'options' => json_decode($it['options_json'] ?? '[]', true) ?: [],
-                'personnalisation' => json_decode($it['personnalisation_json'] ?? 'null', true),
-                'poste' => $it['poste'],
-                'statutItem' => $it['statut_item'],
+                'id'              => $it['id'],
+                'productId'       => $it['product_id'],
+                'nom'             => $it['nom'],
+                'prix'            => (int)$it['prix'],
+                'quantite'        => (int)$it['quantite'],
+                'options'         => json_decode($it['options_json'] ?? '[]', true) ?: [],
+                'personnalisation'=> json_decode($it['personnalisation_json'] ?? 'null', true),
+                'poste'           => $it['poste'],
+                'statutItem'      => $it['statut_item'],
             ];
         }, $itemRows),
     ];
@@ -734,21 +919,24 @@ function mapOrder(PDO $pdo, array $o): array {
 function deduireIngredients(PDO $pdo, array $items): void {
     foreach ($items as $it) {
         $pid = $it['productId'] ?? $it['product_id'] ?? null;
+        $qteProduit = (int)($it['quantite'] ?? 1);
         if (!$pid) continue;
+
         $stmt = $pdo->prepare('SELECT recette_json FROM products WHERE id = ?');
         $stmt->execute([$pid]);
-        $row = $stmt->fetch();
-        if (!$row) continue;
-        $recette = json_decode($row['recette_json'] ?? '[]', true) ?: [];
-        $qte = (int)($it['quantite'] ?? 1);
-        foreach ($recette as $r) {
-            $ingId = $r['ingredientId'] ?? null;
-            $qty = (float)($r['quantite'] ?? 0) * $qte;
-            if ($ingId && $qty > 0) {
-                $pdo->prepare('UPDATE ingredients SET quantite_stock = GREATEST(0, quantite_stock - ?) WHERE id = ?')
-                    ->execute([$qty, $ingId]);
+        $recetteJson = $stmt->fetchColumn();
+
+        if ($recetteJson) {
+            $recette = json_decode($recetteJson, true) ?: [];
+            foreach ($recette as $ligne) {
+                $ingId = $ligne['ingredientId'] ?? null;
+                $qteUnitaire = (float)($ligne['quantite'] ?? 0);
+                if ($ingId && $qteUnitaire > 0) {
+                    $totalDeduire = $qteUnitaire * $qteProduit;
+                    $pdo->prepare('UPDATE ingredients SET quantite_stock = GREATEST(0, quantite_stock - ?) WHERE id = ?')
+                        ->execute([$totalDeduire, $ingId]);
+                }
             }
         }
     }
 }
-?>
