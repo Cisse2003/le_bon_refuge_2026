@@ -28,18 +28,47 @@
   </div>
 </div>
 <script src="/js/api.js"></script>
+<script src="/js/api.js"></script>
 <script>
-document.getElementById('formLogin').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  try {
-    const { user } = await apiPost('/api/auth/login', { username: fd.get('username'), password: fd.get('password') });
-    const destinations = { admin: '/admin.html', chef: '/cuisine.html', assistant_chef: '/cuisine.html', serveur: '/caisse.html', superviseur: '/supervision.html' };
-    window.location.href = destinations[user.role] || '/';
-  } catch (err) {
-    toast(err.message, 'error');
-  }
-});
+  document.getElementById('formLogin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    try {
+      const res = await apiPost('/api/auth/login', {
+        username: fd.get('username'),
+        password: fd.get('password')
+      });
+
+      // 1. Détection automatique de la structure (que ce soit res.user ou res directement)
+      const userData = res.user || res;
+
+      // 2. Nettoyage du rôle (passage en minuscules et suppression des espaces)
+      const role = (userData.role || '').toLowerCase().trim();
+
+      // 3. Mapping des destinations
+      const destinations = {
+        admin: '/admin.html',
+        chef: '/cuisine.html',
+        assistant_chef: '/cuisine.html',
+        serveur: '/caisse.html',
+        superviseur: '/supervision.html'
+      };
+
+      // Console log pour vérifier ce qui est reçu lors de la connexion
+      console.log("Données utilisateur reçues :", userData);
+      console.log("Rôle détecté :", role);
+
+      if (destinations[role]) {
+        window.location.href = destinations[role];
+      } else {
+        console.error("Rôle inconnu :", role);
+        toast("Rôle non reconnu : " + role, "error");
+      }
+
+    } catch (err) {
+      toast(err.message || "Erreur de connexion", 'error');
+    }
+  });
 </script>
 </body>
 </html>
