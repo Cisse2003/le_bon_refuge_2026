@@ -3,16 +3,19 @@ let PRODUITS_CACHE = [];
 let INGREDIENTS_CACHE = [];
 
 async function init() {
-  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'supervieur']);
+  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'superviseur']);
   if (!USER) return;
   document.getElementById('rolePill').textContent = USER.nom + ' · ' + USER.role;
 
-  // Certains onglets sont réservés à l'administrateur
-  if (USER.role !== 'admin') {
+  // Certains onglets sont réservés à l'administrateur et le supervisieur
+  if (USER.role !== 'admin' && USER.role !== 'superviseur') {
     document.querySelectorAll('[data-panel="utilisateurs"]').forEach((b) => b.remove());
   }
 
-  document.getElementById('btnDeconnexion').addEventListener('click', async () => { await apiPost('/api/auth/logout'); window.location.href = '/login.html'; });
+  document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+    await apiPost('/api/auth/logout');
+    window.location.href = '/login.html';
+  });
 
   document.querySelectorAll('#adminNav button').forEach((btn) => {
     btn.addEventListener('click', () => ouvrirPanel(btn.dataset.panel));
