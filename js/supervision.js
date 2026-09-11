@@ -171,6 +171,10 @@ async function loadLiveStream() {
 function ouvrirPanelSupervision(nom) {
     document.querySelectorAll('.admin-nav button[data-panel]').forEach((b) => b.classList.toggle('active', b.dataset.panel === nom));
     document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === 'panel-' + nom));
+
+    // Mémorise le panneau actif
+    localStorage.setItem('active_panel', nom);
+
     if (nom === 'live') loadLiveStream();
 }
 
@@ -195,21 +199,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ok = await checkSupervisionAuth();
     if (!ok) return;
 
-    loadAuditLogs();
+    // 1. Restauration de l'onglet actif après rafraîchissement
+    const savedPanel = localStorage.getItem('active_panel') || 'audit';
+    ouvrirPanelSupervision(savedPanel);
+    if (savedPanel === 'audit') loadAuditLogs();
 
+    // 2. Événements des boutons de navigation
     document.querySelectorAll('.admin-nav button[data-panel]').forEach((btn) => {
         btn.addEventListener('click', () => ouvrirPanelSupervision(btn.dataset.panel));
     });
 
+    // 3. Événements des filtres
     document.getElementById('filterRole').addEventListener('change', loadAuditLogs);
     document.getElementById('filterKeyword').addEventListener('input', debounce(loadAuditLogs, 300));
     document.getElementById('filterDate').addEventListener('change', loadAuditLogs);
 
+    // 4. Déconnexion explicite
     document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+        localStorage.removeItem('active_panel');
         await apiPost('/api/auth/logout');
         window.location.href = '/login.html';
     });
 
+    // 5. Fermeture modale
     const modal = document.getElementById('log-modal');
     if (modal) {
         modal.addEventListener('click', (e) => {
@@ -217,6 +229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // 6. Rafraîchissement automatique en arrière-plan
     setInterval(() => {
         const actif = document.querySelector('.panel.active');
         if (!actif) return;

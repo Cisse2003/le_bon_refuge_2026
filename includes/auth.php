@@ -1,6 +1,20 @@
 <?php
 require_once __DIR__ . '/db.php';
 
+// Fixe la durée du cookie de session à 30 jours (2 592 000 secondes)
+ini_set('session.cookie_lifetime', 2592000);
+ini_set('session.gc_maxlifetime', 2592000);
+
+// Assure la persistance du cookie sur le navigateur
+session_set_cookie_params([
+    'lifetime' => 2592000,
+    'path' => '/',
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
+session_start();
+
 /**
  * Démarrage sécurisé de la session PHP
  */
