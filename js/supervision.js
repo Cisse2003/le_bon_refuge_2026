@@ -168,11 +168,18 @@ async function loadAuditLogs() {
 
 function showLogDetails(log) {
     const modalBody = document.getElementById('modal-body');
-    const details = log.details || {};
+    if (!modalBody) return;
 
-    const cmd = details.commande || details.orderId || 'N/A';
-    const oldVal = details.ancienne_valeur ?? details.ancienneValeur ?? '<em>Aucune</em>';
-    const newVal = details.nouvelle_valeur ?? details.nouvelleValeur ?? '<em>Aucune</em>';
+    let details = log.details;
+    if (typeof details === 'string') {
+        try { details = JSON.parse(details); } catch (e) { details = {}; }
+    }
+    details = details || {};
+
+    const cmd = details.commande || details.orderId || '—';
+    const champ = details.champ || '—';
+    const oldVal = details.ancienne_valeur ?? details.ancienneValeur ?? '—';
+    const newVal = details.nouvelle_valeur ?? details.nouvelleValeur ?? '—';
 
     modalBody.innerHTML = `
         <p><strong>Horodatage :</strong> ${escapeHtml(log.created_at)}</p>
@@ -180,14 +187,15 @@ function showLogDetails(log) {
         <p><strong>Rôle :</strong> ${escapeHtml(log.role)}</p>
         <p><strong>Action :</strong> ${escapeHtml(log.action)}</p>
         <p><strong>Module :</strong> ${escapeHtml(log.module)}</p>
-        <hr>
+        <hr style="margin: 0.8rem 0; border: 0; border-top: 1px solid #ccc;">
         <p><strong>Commande :</strong> ${escapeHtml(cmd)}</p>
-        <p><strong>Champ modifié :</strong> ${escapeHtml(details.champ || 'N/A')}</p>
-        <p><strong>Ancienne Valeur :</strong> ${escapeHtml(oldVal)}</p>
-        <p><strong>Nouvelle Valeur :</strong> ${escapeHtml(newVal)}</p>
+        <p><strong>Champ modifié :</strong> ${escapeHtml(champ)}</p>
+        <p><strong>Ancienne Valeur :</strong> ${escapeHtml(String(oldVal))}</p>
+        <p><strong>Nouvelle Valeur :</strong> ${escapeHtml(String(newVal))}</p>
     `;
 
-    document.getElementById('log-modal').style.display = 'flex';
+    const modal = document.getElementById('log-modal');
+    if (modal) modal.style.display = 'flex';
 }
 
 function closeLogModal() {
