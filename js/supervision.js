@@ -17,6 +17,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/login.html';
     });
 
+    // Fermer la modale au clic en dehors du contenu
+    const modal = document.getElementById('log-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeLogModal();
+        });
+    }
+
     setInterval(() => {
         const actif = document.querySelector('.panel.active');
         if (!actif) return;
@@ -45,7 +53,7 @@ async function loadLiveStream() {
         return;
     }
     container.innerHTML = logs.slice(0, 40).map((log) => `
-        <div class="live-entry">
+        <div class="live-entry" onclick='showLogDetails(${JSON.stringify(log).replace(/'/g, "&#39;")})' style="cursor:pointer;">
             <span class="heure">${escapeHtml(log.created_at)}</span>
             <strong>${escapeHtml(log.username)}</strong> (${escapeHtml(log.role)}) — ${escapeHtml(log.action)}
             <span style="color:var(--text-dim);"> · ${escapeHtml(log.module)}</span>
@@ -60,7 +68,7 @@ async function checkSupervisionAuth() {
             window.location.href = '/login.html';
             return false;
         }
-        document.getElementById('rolePill').textContent = user.nom + ' · superviseur';
+        document.getElementById('rolePill').textContent = (user.nom || user.username) + ' · superviseur';
         return true;
     } catch (e) {
         window.location.href = '/login.html';
@@ -79,21 +87,24 @@ function formatDetailsHTML(details) {
 
     let html = '<div class="details-container">';
 
-    if (details.commande) {
-        html += `<span class="detail-tag detail-cmd">Cmd #${escapeHtml(details.commande)}</span> `;
+    if (details.commande || details.orderId) {
+        html += `<span class="detail-tag detail-cmd">Cmd #${escapeHtml(details.commande || details.orderId)}</span> `;
     }
     if (details.champ) {
         html += `<span class="detail-tag detail-field">${escapeHtml(details.champ)}</span> `;
     }
-    if (details.ancienne_valeur !== undefined || details.nouvelle_valeur !== undefined) {
+
+    const oldVal = details.ancienne_valeur ?? details.ancienneValeur;
+    const newVal = details.nouvelle_valeur ?? details.nouvelleValeur;
+
+    if (oldVal !== undefined || newVal !== undefined) {
         html += `<div class="detail-change">
-            <span class="val-old">${escapeHtml(details.ancienne_valeur ?? '∅')}</span> 
+            <span class="val-old">${escapeHtml(oldVal ?? '∅')}</span> 
             <span class="arrow">→</span> 
-            <span class="val-new">${escapeHtml(details.nouvelle_valeur ?? '∅')}</span>
+            <span class="val-new">${escapeHtml(newVal ?? '∅')}</span>
         </div>`;
     }
 
-    // Gestion des clés arbitraires restantes
     const keysIgnored = ['commande', 'champ', 'ancienne_valeur', 'nouvelle_valeur', 'orderId', 'ancienneValeur', 'nouvelleValeur'];
     Object.keys(details).forEach(key => {
         if (!keysIgnored.includes(key) && details[key] !== null && details[key] !== '') {
@@ -115,7 +126,7 @@ async function loadAuditLogs() {
     try {
         logs = await apiGet(`/api/supervision/logs?${queryParams}`);
     } catch (e) {
-        toast(e.message || "Impossible de charger l'audit", 'error');
+        if (typeof toast === 'function') toast(e.message || "Impossible de charger l'audit", 'error');
         return;
     }
 
@@ -131,6 +142,7 @@ async function loadAuditLogs() {
         const tr = document.createElement('tr');
         const roleClass = 'role-' + (log.role || 'inconnu').replace(/[^a-z_]/gi, '');
 
+        tr.style.cursor = 'pointer';
         tr.innerHTML = `
             <td><span class="date-cell">${escapeHtml(log.created_at)}</span></td>
             <td><strong>${escapeHtml(log.username)}</strong>${log.user_nom ? '<br><small class="user-sub">' + escapeHtml(log.user_nom) + '</small>' : ''}</td>
@@ -139,8 +151,40 @@ async function loadAuditLogs() {
             <td><span class="module-tag">${escapeHtml(log.module)}</span></td>
             <td>${formatDetailsHTML(log.details)}</td>
         `;
+
+        // Événement au clic sur toute la ligne du tableau
+        tr.onclick = () => showLogDetails(log);
+
         tbody.appendChild(tr);
     });
+}
+
+function showLogDetails(log) {
+    const modalBody = document.getElementById('modal-body');
+    const details = log.details || {};
+
+    const cmd = details.commande || details.orderId || 'N/A';
+    const oldVal = details.ancienne_valeur ?? details.ancienneValeur ?? '<em>Aucune</em>';
+    const newVal = details.nouvelle_valeur ?? details.nouvelleValeur ?? '<em>Aucune</em>';
+
+    modalBody.innerHTML = `
+        <p><strong>Horodatage :</strong> ${escapeHtml(log.created_at)}</p>
+        <p><strong>Utilisateur :</strong> ${escapeHtml(log.username)} ${log.user_nom ? '(' + escapeHtml(log.user_nom) + ')' : ''}</p>
+        <p><strong>Rôle :</strong> ${escapeHtml(log.role)}</p>
+        <p><strong>Action :</strong> ${escapeHtml(log.action)}</p>
+        <p><strong>Module :</strong> ${escapeHtml(log.module)}</p>
+        <hr>
+        <p><strong>Commande :</strong> ${escapeHtml(cmd)}</p>
+        <p><strong>Champ modifié :</strong> ${escapeHtml(details.champ || 'N/A')}</p>
+        <p><strong>Ancienne Valeur :</strong> ${escapeHtml(oldVal)}</p>
+        <p><strong>Nouvelle Valeur :</strong> ${escapeHtml(newVal)}</p>
+    `;
+
+    document.getElementById('log-modal').style.display = 'flex';
+}
+
+function closeLogModal() {
+    document.getElementById('log-modal').style.display = 'none';
 }
 
 function debounce(func, wait) {
