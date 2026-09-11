@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/login.html';
     });
 
-    // Fermer la modale au clic en dehors du contenu
+    // Fermeture de la modale au clic en dehors
     const modal = document.getElementById('log-modal');
     if (modal) {
         modal.addEventListener('click', (e) => {
@@ -52,13 +52,21 @@ async function loadLiveStream() {
         container.innerHTML = '<p class="empty-state">Aucune activité récente</p>';
         return;
     }
-    container.innerHTML = logs.slice(0, 40).map((log) => `
-        <div class="live-entry" onclick='showLogDetails(${JSON.stringify(log).replace(/'/g, "&#39;")})' style="cursor:pointer;">
+
+    container.innerHTML = '';
+    logs.slice(0, 40).forEach((log) => {
+        const div = document.createElement('div');
+        div.className = 'live-entry';
+        div.style.cursor = 'pointer';
+        div.innerHTML = `
             <span class="heure">${escapeHtml(log.created_at)}</span>
             <strong>${escapeHtml(log.username)}</strong> (${escapeHtml(log.role)}) — ${escapeHtml(log.action)}
             <span style="color:var(--text-dim);"> · ${escapeHtml(log.module)}</span>
-        </div>
-    `).join('');
+        `;
+        // Attachement propre de l'événement clic sans guillemets HTML
+        div.addEventListener('click', () => showLogDetails(log));
+        container.appendChild(div);
+    });
 }
 
 async function checkSupervisionAuth() {
@@ -152,8 +160,7 @@ async function loadAuditLogs() {
             <td>${formatDetailsHTML(log.details)}</td>
         `;
 
-        // Événement au clic sur toute la ligne du tableau
-        tr.onclick = () => showLogDetails(log);
+        tr.addEventListener('click', () => showLogDetails(log));
 
         tbody.appendChild(tr);
     });
