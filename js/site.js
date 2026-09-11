@@ -443,9 +443,15 @@ function afficherRecapitulatif(commande, reponseApi) {
   // Gestion du bouton de téléchargement du PDF
   const btnPdf = document.getElementById('btnTelechargerPdf');
   if (btnPdf) {
-    if (dataApi && dataApi.pdfUrl && dataApi.pdfUrl !== '#') {
-      btnPdf.href = dataApi.pdfUrl;
-      btnPdf.style.display = 'block';
+    const hasValidPdf = dataApi && dataApi.pdfUrl && dataApi.pdfUrl !== '#';
+
+    if (hasValidPdf) {
+      if ('href' in btnPdf) {
+        btnPdf.href = dataApi.pdfUrl;
+      } else {
+        btnPdf.setAttribute('data-href', dataApi.pdfUrl);
+      }
+      btnPdf.style.display = 'inline-block';
     } else {
       btnPdf.style.display = 'none';
     }
