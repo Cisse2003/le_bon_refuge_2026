@@ -192,29 +192,34 @@ function lienAppel() {
 
 function afficherRecapitulatif(commande, reponseApi) {
   const typeLabels = { a_emporter: 'À emporter', a_l_avance: 'Commande à l\'avance' };
-  const lignes = commande.items.map((it) =>
+
+  // Sécurisation contre reponseApi undefined/null
+  const dataApi = reponseApi || {};
+
+  const lignes = (commande.items || []).map((it) =>
       `<div class="ticket-row"><span>${it.quantite}× ${it.nom}</span><span>${formatMontant(it.prix * it.quantite)}</span></div>`
   ).join('');
 
   const ticketContainer = document.getElementById('ticketConfirmation');
   if (ticketContainer) {
     ticketContainer.innerHTML = `
-      <h4>Ticket #${escapeHtml(reponseApi.numeroTicket || reponseApi.commandeId || '')}</h4>
+      <h4>Ticket #${escapeHtml(dataApi.numeroTicket || dataApi.commandeId || '')}</h4>
       <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">Statut : En attente de validation</p>
       <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.typeService] || commande.typeService}</span></div>
       ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${commande.avance.date} ${commande.avance.heure}</span></div>` : ''}
-      <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient)} (${escapeHtml(commande.telClient)})</span></div>
+      <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient || '')} (${escapeHtml(commande.telClient || '')})</span></div>
       <div class="ticket-sep"></div>
       ${lignes}
       <div class="ticket-sep"></div>
-      <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal)}</span></div>
+      <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal || 0)}</span></div>
     `;
   }
 
+  // Vérification stricte de l'élément avant modification de propriété
   const btnPdf = document.getElementById('btnTelechargerPdf');
   if (btnPdf) {
-    if (reponseApi && reponseApi.pdfUrl) {
-      btnPdf.href = reponseApi.pdfUrl;
+    if (dataApi.pdfUrl) {
+      btnPdf.href = dataApi.pdfUrl;
       btnPdf.style.display = 'block';
     } else {
       btnPdf.style.display = 'none';
