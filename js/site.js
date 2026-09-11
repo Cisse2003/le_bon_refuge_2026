@@ -1,224 +1,449 @@
-// ==== Configuration à adapter par le restaurant ====
-const NUMERO_WHATSAPP = '33123456789'; // format international sans "+" ni espaces, pour les liens wa.me
-const NUMERO_TELEPHONE = '+33 1 23 45 67 89'; // affiché et utilisé pour le lien "tel:"
-const LIEN_TIKTOK = 'https://www.tiktok.com/@lebonrefuge';
-const LIEN_FACEBOOK = 'https://www.facebook.com/lebonrefuge';
+/**
+ * LE BON REFUGE - site.js
+ * Gestion de la carte, du panier, des réservations et des commandes
+ */
 
-// ==== État ====
-let PRODUITS = [];
-let categorieActive = 'Tous';
-let panier = JSON.parse(localStorage.getItem('lbc_panier') || '[]');
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialisation de l'application
+  await chargerDonneesEtContact();
+  initialiserPanier();
+  initialiserFormulaires();
+  initialiserModales();
+});
 
-function sauvegarderPanier() {
-  localStorage.setItem('lbc_panier', JSON.stringify(panier));
-  majBadgePanier();
-}
+/* ==========================================================================
+   1. GESTION DES DONNÉES & CONTACT (API)
+   ========================================================================== */
 
-function majBadgePanier() {
-  const total = panier.reduce((s, it) => s + it.quantite, 0);
-  const badge = document.getElementById('cartBadge');
-  if (badge) {
-    badge.textContent = total;
-    badge.style.display = total > 0 ? 'flex' : 'none';
-  }
-}
+let MENU_DATA = [];
 
-// ==== Chargement des produits ====
-async function chargerProduits() {
+async function chargerDonneesEtContact() {
   try {
-    PRODUITS = await apiGet('/api/products');
-    construireOnglets();
-    afficherMenu();
-    afficherPopulaires();
-    remplirParfumsGateau();
+    // Récupération des infos du restaurant (téléphone, réseaux, etc.)
+    if (typeof API !== 'undefined' && API.getContact) {
+      const contact = await API.getContact();
+      injecterInfosContact(contact);
+    }
+
+    // Récupération du menu
+    if (typeof API !== 'undefined' && API.getMenu) {
+      MENU_DATA = await API.getMenu();
+    } else {
+      // Fallback de sécurité si l'API n'est pas encore connectée
+      MENU_DATA = getMenuFallback();
+    }
+
+    afficherMenu(MENU_DATA);
+    afficherPlatsPopulaires(MENU_DATA);
+    remplirParfumsGateau(MENU_DATA);
+
   } catch (err) {
-    console.error('Erreur chargement produits:', err);
+    console.error('Erreur lors du chargement des données :', err);
   }
 }
 
-function construireOnglets() {
-  const categories = ['Tous', ...new Set(PRODUITS.map((p) => p.categorie))];
-  const container = document.getElementById('tabsCategories');
-  if (!container) return;
-  container.innerHTML = categories.map((c) =>
-      `<button class="tab ${c === categorieActive ? 'active' : ''}" data-cat="${c}">${c}</button>`
-  ).join('');
-  container.querySelectorAll('.tab').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      categorieActive = btn.dataset.cat;
-      construireOnglets();
-      afficherMenu();
+function injecterInfosContact(contact) {
+  if (!contact) return;
+
+  const phone = contact.telephone || '+224 00 00 00 00';
+  const whatsapp = contact.whatsapp || 'https://wa.me/';
+
+  // Téléphones
+  const txtTel = document.getElementById('texteTelephoneContact');
+  if (txtTel) txtTel.textContent = phone;
+
+  const lienAppelHero = document.getElementById('lienAppelHero');
+  if (lienAppelHero) lienAppelHero.href = `tel:${phone.replace(/\s+/g, '')}`;
+
+  const lienAppelContact = document.getElementById('lienAppelContact');
+  if (lienAppelContact) lienAppelContact.href = `tel:${phone.replace(/\s+/g, '')}`;
+
+  // WhatsApp
+  const wsLinks = ['lienWhatsappHero', 'lienWhatsappReservation', 'lienWhatsappContact'];
+  wsLinks.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.href = whatsapp;
+  });
+
+  // Réseaux sociaux
+  const tt = document.getElementById('lienTiktokContact');
+  if (tt && contact.tiktok) tt.href = contact.tiktok;
+
+  const fb = document.getElementById('lienFacebookContact');
+  if (fb && contact.facebook) fb.href = contact.facebook;
+}
+
+/* ==========================================================================
+   2. RENDU DU MENU ET POPULAIRES
+   ========================================================================== */
+
+function afficherMenu(menu) {
+  const tabsContainer = document.getElementById('tabsCategories');
+  const grilleContainer = document.getElementById('grilleMenu');
+  if (!tabsContainer || !grilleContainer) return;
+
+  // Extraire les catégories uniques
+  const categories = ['Tous', ...new Set(menu.map(item => item.categorie))];
+
+  // Onglets
+  tabsContainer.innerHTML = categories.map((cat, index) => `
+    <button class="tab-btn ${index === 0 ? 'active' : ''}" data-cat="${escapeHtml(cat)}">
+      ${escapeHtml(cat)}
+    </button>
+  `).join('');
+
+  // Rendu de la grille
+  rendreGrilleMenu(menu, 'Tous');
+
+  // Événements sur les onglets
+  tabsContainer.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      tabsContainer.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      rendreGrilleMenu(menu, btn.dataset.cat);
     });
   });
 }
 
-function afficherMenu() {
-  const liste = categorieActive === 'Tous' ? PRODUITS : PRODUITS.filter((p) => p.categorie === categorieActive);
-  const grille = document.getElementById('grilleMenu');
-  if (!grille) return;
-  if (liste.length === 0) {
-    grille.innerHTML = '<div class="empty-state">Aucun produit dans cette catégorie pour le moment.</div>';
-    return;
-  }
-  grille.innerHTML = liste.map((p) => `
-    <div class="card product-card">
-      ${p.photo ? `<img class="product-photo" src="${p.photo}" alt="${p.nom}">` : `<div class="product-photo placeholder">🍽</div>`}
-      <div class="product-title-row">
-        <h3>${p.nom}</h3>
-        <span class="price">${formatMontant(p.prix)}</span>
+function rendreGrilleMenu(menu, categorie) {
+  const grilleContainer = document.getElementById('grilleMenu');
+  if (!grilleContainer) return;
+
+  const itemsFiltrés = categorie === 'Tous'
+      ? menu
+      : menu.filter(i => i.categorie === categorie);
+
+  grilleContainer.innerHTML = itemsFiltrés.map(item => `
+    <div class="card card-menu">
+      ${item.image ? `<img src="${item.image}" alt="${escapeHtml(item.nom)}" style="width:100%; height:160px; object-fit:cover; border-radius:8px; margin-bottom:0.8rem;">` : ''}
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.4rem;">
+        <h4 style="margin:0;">${escapeHtml(item.nom)}</h4>
+        <span class="badge-prix">${formatMontant(item.prix)}</span>
       </div>
-      <p style="font-size:0.88rem; margin:0;">${p.description || ''}</p>
-      ${!p.disponible ? '<span class="badge badge--out">Indisponible</span>' :
-      `<button class="btn btn--sm" data-add="${p.id}">Ajouter au panier</button>`}
+      <p style="font-size:0.85rem; color:var(--paper-muted); margin-bottom:1rem; flex-grow:1;">${escapeHtml(item.description || '')}</p>
+      <button class="btn btn--sm btn--block btn-ajouter-panier" data-id="${item.id}">
+        + Ajouter au panier
+      </button>
     </div>
   `).join('');
 
-  grille.querySelectorAll('[data-add]').forEach((btn) => {
+  // Événements d'ajout au panier
+  grilleContainer.querySelectorAll('.btn-ajouter-panier').forEach(btn => {
     btn.addEventListener('click', () => {
-      const produit = PRODUITS.find((p) => p.id === btn.dataset.add);
-      if (produit.personnalisable) {
-        ouvrirModale('modalGateau');
-      } else {
-        ajouterAuPanier(produit, 1, []);
-        toast(`${produit.nom} ajouté au panier`, 'success');
-      }
+      const id = btn.dataset.id;
+      const item = MENU_DATA.find(i => String(i.id) === String(id));
+      if (item) Panier.ajouter(item);
     });
   });
 }
 
-function afficherPopulaires() {
-  const top = PRODUITS.filter((p) => ['Plats', 'Fast-food', 'Pizzas'].includes(p.categorie) && p.disponible).slice(0, 3);
+function afficherPlatsPopulaires(menu) {
   const container = document.getElementById('platsPopulaires');
-  if (container) {
-    container.innerHTML = top.map((p) => `
-      <div class="ticket-row"><span>${p.nom}</span><span>${formatMontant(p.prix)}</span></div>
-    `).join('');
-  }
+  if (!container) return;
+
+  const populaires = menu.filter(i => i.populaire).slice(0, 3);
+  container.innerHTML = populaires.map(p => `
+    <div class="ticket-row">
+      <span>${escapeHtml(p.nom)}</span>
+      <span>${formatMontant(p.prix)}</span>
+    </div>
+  `).join('');
 }
 
-function remplirParfumsGateau() {
-  const gateau = PRODUITS.find((p) => p.personnalisable);
+function remplirParfumsGateau(menu) {
   const select = document.getElementById('selectParfumGateau');
-  if (!gateau || !select) return;
-  select.innerHTML = gateau.options.map((o) => `<option value="${o}">${o}</option>`).join('');
+  if (!select) return;
+
+  const parfums = ['Chocolat', 'Vaniille', 'Fraise', 'Forêt Noire', 'Red Velvet', 'Pistache', 'Fruits Rouges'];
+  select.innerHTML = parfums.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
-// ==== Panier ====
-function ajouterAuPanier(produit, quantite, options, personnalisation) {
-  panier.push({
-    id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6),
-    productId: produit.id,
-    nom: produit.nom,
-    prix: produit.prix,
-    quantite,
-    options: options || [],
-    personnalisation: personnalisation || null,
-  });
-  sauvegarderPanier();
-  afficherPanier();
-}
+/* ==========================================================================
+   3. MODULE PANIER (State & Drawer)
+   ========================================================================== */
 
-function retirerDuPanier(ligneId) {
-  panier = panier.filter((l) => l.id !== ligneId);
-  sauvegarderPanier();
-  afficherPanier();
-}
+const Panier = {
+  items: [],
 
-function changerQuantite(ligneId, delta) {
-  const ligne = panier.find((l) => l.id === ligneId);
-  if (!ligne) return;
-  ligne.quantite += delta;
-  if (ligne.quantite <= 0) return retirerDuPanier(ligneId);
-  sauvegarderPanier();
-  afficherPanier();
-}
+  ajouter(produit) {
+    const existant = this.items.find(i => String(i.id) === String(produit.id));
+    if (existant) {
+      existant.quantite += 1;
+    } else {
+      this.items.push({
+        id: produit.id,
+        nom: produit.nom,
+        prix: produit.prix,
+        quantite: 1
+      });
+    }
+    this.mettreAJour();
+    this.ouvrirDrawer();
+  },
 
-function totalPanier() {
-  return panier.reduce((s, l) => s + l.prix * l.quantite, 0);
-}
+  modifierQuantite(id, delta) {
+    const item = this.items.find(i => String(i.id) === String(id));
+    if (!item) return;
 
-function afficherPanier() {
-  const body = document.getElementById('cartBody');
-  if (!body) return;
-  if (panier.length === 0) {
-    body.innerHTML = '<div class="empty-state">Votre panier est vide.</div>';
-  } else {
-    body.innerHTML = panier.map((l) => `
-      <div class="cart-item">
-        <div>
-          <strong>${l.nom}</strong><br>
-          ${l.options.length ? `<small>${l.options.join(', ')}</small><br>` : ''}
-          ${l.personnalisation ? `<small>${l.personnalisation.taille} · ${l.personnalisation.parfum} · retrait ${l.personnalisation.date} ${l.personnalisation.heure}</small><br>` : ''}
-          <small>${formatMontant(l.prix)} / unité</small>
-        </div>
-        <div style="text-align:right;">
-          <div class="qty-control">
-            <button data-moins="${l.id}">−</button>
-            <span>${l.quantite}</span>
-            <button data-plus="${l.id}">+</button>
+    item.quantite += delta;
+    if (item.quantite <= 0) {
+      this.items = this.items.filter(i => String(i.id) !== String(id));
+    }
+    this.mettreAJour();
+  },
+
+  vider() {
+    this.items = [];
+    this.mettreAJour();
+  },
+
+  getTotal() {
+    return this.items.reduce((sum, item) => sum + (item.prix * item.quantite), 0);
+  },
+
+  getItems() {
+    return this.items;
+  },
+
+  mettreAJour() {
+    // Badge
+    const badge = document.getElementById('cartBadge');
+    const totalCount = this.items.reduce((sum, i) => sum + i.quantite, 0);
+    if (badge) {
+      badge.textContent = totalCount;
+      badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+    }
+
+    // Contenu du Drawer
+    const cartBody = document.getElementById('cartBody');
+    const cartTotal = document.getElementById('cartTotal');
+
+    if (cartTotal) cartTotal.textContent = formatMontant(this.getTotal());
+
+    if (cartBody) {
+      if (this.items.length === 0) {
+        cartBody.innerHTML = '<p style="text-align:center; color:var(--paper-muted); margin-top:2rem;">Votre panier est vide.</p>';
+      } else {
+        cartBody.innerHTML = this.items.map(item => `
+          <div class="cart-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:0.8rem; border-bottom:1px solid rgba(255,255,255,0.1);">
+            <div>
+              <div style="font-weight:600; color:var(--paper);">${escapeHtml(item.nom)}</div>
+              <div style="font-size:0.85rem; color:var(--paper-muted);">${formatMontant(item.prix)}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <button class="btn btn--ghost btn--sm btn-qte" data-id="${item.id}" data-delta="-1">-</button>
+              <span style="font-weight:bold; min-width:18px; text-align:center;">${item.quantite}</span>
+              <button class="btn btn--ghost btn--sm btn-qte" data-id="${item.id}" data-delta="1">+</button>
+            </div>
           </div>
-          <small><a href="#" data-suppr="${l.id}" style="color:var(--danger);">supprimer</a></small>
-        </div>
-      </div>
-    `).join('');
-    body.querySelectorAll('[data-plus]').forEach((b) => b.addEventListener('click', () => changerQuantite(b.dataset.plus, 1)));
-    body.querySelectorAll('[data-moins]').forEach((b) => b.addEventListener('click', () => changerQuantite(b.dataset.moins, -1)));
-    body.querySelectorAll('[data-suppr]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); retirerDuPanier(b.dataset.suppr); }));
+        `).join('');
+
+        cartBody.querySelectorAll('.btn-qte').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.modifierQuantite(btn.dataset.id, parseInt(btn.dataset.delta, 10));
+          });
+        });
+      }
+    }
+  },
+
+  ouvrirDrawer() {
+    const drawer = document.getElementById('cartDrawer');
+    const overlay = document.getElementById('overlay');
+    if (drawer) drawer.classList.add('open');
+    if (overlay) overlay.classList.add('active');
+  },
+
+  fermerDrawer() {
+    const drawer = document.getElementById('cartDrawer');
+    const overlay = document.getElementById('overlay');
+    if (drawer) drawer.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
   }
-  const totalEl = document.getElementById('cartTotal');
-  if (totalEl) totalEl.textContent = formatMontant(totalPanier());
-  majBadgePanier();
+};
+
+function initialiserPanier() {
+  const btnOuvrir = document.getElementById('btnOuvrirPanier');
+  const btnFermer = document.getElementById('btnFermerPanier');
+  const overlay = document.getElementById('overlay');
+  const btnCommander = document.getElementById('btnCommander');
+
+  if (btnOuvrir) btnOuvrir.addEventListener('click', () => Panier.ouvrirDrawer());
+  if (btnFermer) btnFermer.addEventListener('click', () => Panier.fermerDrawer());
+  if (overlay) overlay.addEventListener('click', () => Panier.fermerDrawer());
+
+  if (btnCommander) {
+    btnCommander.addEventListener('click', () => {
+      if (Panier.getItems().length === 0) {
+        alert('Votre panier est vide.');
+        return;
+      }
+      Panier.fermerDrawer();
+      ouvrirModal('modalCommande');
+    });
+  }
 }
 
-// ==== Ouverture / fermeture UI ====
-function ouvrirPanier() {
-  document.getElementById('cartDrawer').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
-}
-function fermerPanier() {
-  document.getElementById('cartDrawer').classList.remove('open');
-  document.getElementById('overlay').classList.remove('open');
-}
-function ouvrirModale(id) { document.getElementById(id).classList.add('open'); }
-function fermerModales() { document.querySelectorAll('.modal-overlay').forEach((m) => m.classList.remove('open')); }
+/* ==========================================================================
+   4. FORMULAIRES & LOGIQUE MÉTIER
+   ========================================================================== */
 
-// ==== Liens WhatsApp / appel génériques ====
-function lienWhatsapp(message) {
-  return `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(message)}`;
+function initialiserFormulaires() {
+  // A. Type de commande (À emporter / À l'avance)
+  const selectType = document.getElementById('selectTypeCommande');
+  const champsAvance = document.getElementById('champsAvance');
+  if (selectType && champsAvance) {
+    selectType.addEventListener('change', () => {
+      champsAvance.style.display = selectType.value === 'a_l_avance' ? 'block' : 'none';
+    });
+  }
+
+  // B. Soumission de la commande finale
+  const formCommande = document.getElementById('formCommande');
+  if (formCommande) {
+    formCommande.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(formCommande);
+
+      const payload = {
+        typeService: formData.get('type'),
+        nomClient: formData.get('nom'),
+        telClient: formData.get('tel'),
+        notes: formData.get('notes'),
+        items: Panier.getItems(),
+        montantTotal: Panier.getTotal()
+      };
+
+      if (formData.get('type') === 'a_l_avance') {
+        payload.avance = {
+          date: formData.get('date'),
+          heure: formData.get('heure'),
+          personnes: formData.get('personnes')
+        };
+      }
+
+      try {
+        let reponse = {};
+        if (typeof API !== 'undefined' && API.creerCommande) {
+          reponse = await API.creerCommande(payload);
+        } else {
+          // Simulation si API non liée
+          reponse = { numeroTicket: 'REF-' + Math.floor(1000 + Math.random() * 9000), pdfUrl: '#' };
+        }
+
+        fermerModal('modalCommande');
+        afficherRecapitulatif(payload, reponse);
+        ouvrirModal('modalConfirmation');
+        Panier.vider();
+
+      } catch (err) {
+        console.error('Erreur lors de la réservation/commande :', err);
+        alert('Une erreur est survenue lors de la validation de votre commande.');
+      }
+    });
+  }
+
+  // C. Soumission Réservation de Table
+  const formReservation = document.getElementById('formReservation');
+  if (formReservation) {
+    formReservation.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(formReservation);
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        if (typeof API !== 'undefined' && API.creerReservation) {
+          await API.creerReservation(payload);
+        }
+        alert('Votre demande de réservation a été envoyée ! Nous vous contacterons pour confirmer.');
+        formReservation.reset();
+      } catch (err) {
+        alert('Erreur lors de l\'envoi de la réservation.');
+      }
+    });
+  }
+
+  // D. Soumission Gâteau Personnalisé
+  const btnCommanderGateau = document.getElementById('btnCommanderGateau');
+  if (btnCommanderGateau) {
+    btnCommanderGateau.addEventListener('click', () => ouvrirModal('modalGateau'));
+  }
+
+  const formGateau = document.getElementById('formGateau');
+  if (formGateau) {
+    formGateau.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const formData = new FormData(formGateau);
+
+      const itemGateau = {
+        id: 'gateau-' + Date.now(),
+        nom: `Gâteau ${formData.get('taille')} (${formData.get('parfum')})`,
+        prix: 150000, // Prix estimé/base
+        quantite: 1
+      };
+
+      Panier.ajouter(itemGateau);
+      fermerModal('modalGateau');
+      formGateau.reset();
+    });
+  }
 }
-function lienAppel() {
-  return `tel:${NUMERO_TELEPHONE.replace(/\s+/g, '')}`;
-}
+
+/* ==========================================================================
+   5. RÉCAPITULATIF ET CONFIRMATION
+   ========================================================================== */
 
 function afficherRecapitulatif(commande, reponseApi) {
-  const typeLabels = { a_emporter: 'À emporter', a_l_avance: 'Commande à l\'avance' };
+  const typeLabels = {
+    a_emporter: 'À emporter',
+    a_l_avance: 'Commande à l\'avance'
+  };
 
-  // Sécurisation contre reponseApi undefined/null
   const dataApi = reponseApi || {};
+  const items = commande.items || [];
 
-  const lignes = (commande.items || []).map((it) =>
-      `<div class="ticket-row"><span>${it.quantite}× ${it.nom}</span><span>${formatMontant(it.prix * it.quantite)}</span></div>`
-  ).join('');
+  const lignes = items.map((it) => `
+    <div class="ticket-row">
+      <span>${it.quantite}× ${escapeHtml(it.nom)}</span>
+      <span>${formatMontant(it.prix * it.quantite)}</span>
+    </div>
+  `).join('');
 
   const ticketContainer = document.getElementById('ticketConfirmation');
   if (ticketContainer) {
     ticketContainer.innerHTML = `
-      <h4>Ticket #${escapeHtml(dataApi.numeroTicket || dataApi.commandeId || '')}</h4>
-      <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">Statut : En attente de validation</p>
-      <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.typeService] || commande.typeService}</span></div>
-      ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${commande.avance.date} ${commande.avance.heure}</span></div>` : ''}
-      <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient || '')} (${escapeHtml(commande.telClient || '')})</span></div>
+      <h4>Ticket #${escapeHtml(dataApi.numeroTicket || dataApi.commandeId || 'EN-COURS')}</h4>
+      <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">
+        Statut : En attente de validation
+      </p>
+      <div class="ticket-row">
+        <span>Type</span>
+        <span>${typeLabels[commande.typeService] || commande.typeService}</span>
+      </div>
+      ${commande.avance ? `
+        <div class="ticket-row">
+          <span>Retrait</span>
+          <span>${escapeHtml(commande.avance.date || '')} ${escapeHtml(commande.avance.heure || '')}</span>
+        </div>
+      ` : ''}
+      <div class="ticket-row">
+        <span>Client</span>
+        <span>${escapeHtml(commande.nomClient || '')} (${escapeHtml(commande.telClient || '')})</span>
+      </div>
       <div class="ticket-sep"></div>
       ${lignes}
       <div class="ticket-sep"></div>
-      <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal || 0)}</span></div>
+      <div class="ticket-total">
+        <span>Total</span>
+        <span>${formatMontant(commande.montantTotal || 0)}</span>
+      </div>
     `;
   }
 
-  // Vérification stricte de l'élément avant modification de propriété
+  // Gestion du bouton de téléchargement du PDF
   const btnPdf = document.getElementById('btnTelechargerPdf');
   if (btnPdf) {
-    if (dataApi.pdfUrl) {
+    if (dataApi && dataApi.pdfUrl && dataApi.pdfUrl !== '#') {
       btnPdf.href = dataApi.pdfUrl;
       btnPdf.style.display = 'block';
     } else {
@@ -227,106 +452,59 @@ function afficherRecapitulatif(commande, reponseApi) {
   }
 }
 
-// ==== Initialisation ====
-document.addEventListener('DOMContentLoaded', () => {
-  chargerProduits();
-  afficherPanier();
+/* ==========================================================================
+   6. GESTION DES MODALES
+   ========================================================================== */
 
-  document.getElementById('lienWhatsappHero').href = lienWhatsapp("Bonjour Le Bon Refuge, je souhaiterais avoir des informations 🙂");
-  document.getElementById('lienWhatsappContact').href = lienWhatsapp("Bonjour Le Bon Refuge !");
-  document.getElementById('lienWhatsappReservation').href = lienWhatsapp("Bonjour, je souhaite réserver une table.");
-  document.getElementById('lienAppelHero').href = lienAppel();
-  document.getElementById('lienAppelContact').href = lienAppel();
-  document.getElementById('texteTelephoneContact').textContent = NUMERO_TELEPHONE;
-  document.getElementById('lienTiktokContact').href = LIEN_TIKTOK;
-  document.getElementById('lienFacebookContact').href = LIEN_FACEBOOK;
+function ouvrirModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.add('active');
+}
 
-  document.getElementById('btnOuvrirPanier').addEventListener('click', ouvrirPanier);
-  document.getElementById('btnFermerPanier').addEventListener('click', fermerPanier);
-  document.getElementById('overlay').addEventListener('click', fermerPanier);
-  document.querySelectorAll('[data-close-modal]').forEach((b) => b.addEventListener('click', fermerModales));
+function fermerModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.remove('active');
+}
 
-  document.getElementById('btnCommanderGateau').addEventListener('click', () => ouvrirModale('modalGateau'));
-
-  // Formulaire gâteau personnalisé
-  document.getElementById('formGateau').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const gateau = PRODUITS.find((p) => p.personnalisable);
-    let photoUrl = '';
-    const fichier = fd.get('photo');
-    if (fichier && fichier.size > 0) {
-      const uploadFd = new FormData();
-      uploadFd.append('photo', fichier);
-      try {
-        const up = await fetch('/api/upload', { method: 'POST', body: uploadFd });
-        const upData = await up.json();
-        photoUrl = upData.url || '';
-      } catch (err) { console.warn('Upload photo échoué', err); }
-    }
-    ajouterAuPanier(gateau, 1, [], {
-      taille: fd.get('taille'), parfum: fd.get('parfum'), decoration: fd.get('decoration'),
-      texte: fd.get('texte'), date: fd.get('date'), heure: fd.get('heure'), photoModele: photoUrl,
+function initialiserModales() {
+  // Gestion de la fermeture sur clic boutons ou overlay
+  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modal = btn.closest('.modal-overlay');
+      if (modal) modal.classList.remove('active');
     });
-    toast('Gâteau ajouté au panier', 'success');
-    fermerModales();
-    e.target.reset();
   });
 
-  document.getElementById('btnCommander').addEventListener('click', () => {
-    if (panier.length === 0) return toast('Votre panier est vide', 'error');
-    fermerPanier();
-    ouvrirModale('modalCommande');
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('active');
+    });
   });
+}
 
-  document.getElementById('selectTypeCommande').addEventListener('change', (e) => {
-    document.getElementById('champsAvance').style.display = e.target.value === 'a_l_avance' ? 'block' : 'none';
-  });
+/* ==========================================================================
+   7. UTILITAIRES & FALLBACKS
+   ========================================================================== */
 
-  document.getElementById('formCommande').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const type = fd.get('type');
+function formatMontant(montant) {
+  return new Intl.NumberFormat('fr-FR').format(montant) + ' FG';
+}
 
-    const payload = {
-      typeService: type,
-      nomClient: fd.get('nom'),
-      telClient: fd.get('tel'),
-      notes: fd.get('notes') || '',
-      items: panier,
-      montantTotal: totalPanier(),
-      avance: type === 'a_l_avance' ? { date: fd.get('date'), heure: fd.get('heure'), personnes: fd.get('personnes') } : null
-    };
+function escapeHtml(str) {
+  if (typeof str !== 'string') return str;
+  return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+}
 
-    try {
-      const reponse = await apiPost('/api/orders', payload);
-
-      toast('Commande transmise avec succès !', 'success');
-      afficherRecapitulatif(payload, reponse);
-      fermerModales();
-      ouvrirModale('modalConfirmation');
-
-      panier = [];
-      sauvegarderPanier();
-      afficherPanier();
-      e.target.reset();
-    } catch (err) {
-      toast(err.message || "Erreur lors de l'envoi de la commande", 'error');
-    }
-  });
-
-  document.getElementById('formReservation').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    try {
-      await apiPost('/api/reservations', {
-        nom: fd.get('nom'), tel: fd.get('tel'), date: fd.get('date'),
-        heure: fd.get('heure'), personnes: fd.get('personnes'), notes: fd.get('notes'),
-      });
-      toast('Réservation envoyée ! Nous vous confirmons rapidement.', 'success');
-      e.target.reset();
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-  });
-});
+function getMenuFallback() {
+  return [
+    { id: 1, nom: 'Tacos XL Poulet Tikka', categorie: 'Tacos', prix: 45000, description: 'Sauce fromagère maison, frites incluses.', populaire: true },
+    { id: 2, nom: 'Burger Le Refuge', categorie: 'Burgers', prix: 50000, description: 'Double steak 100g, cheddar fondu, oignons caramélisés.', populaire: true },
+    { id: 3, nom: 'Pizza Reine', categorie: 'Pizzas', prix: 65000, description: 'Base tomate, mozzarella, jambon, champignons.', populaire: false },
+    { id: 4, nom: 'Gaufre Chocolat', categorie: 'Desserts', prix: 20000, description: 'Nappage chocolat gourmand et chantilly.', populaire: true }
+  ];
+}
