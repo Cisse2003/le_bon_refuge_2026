@@ -121,34 +121,81 @@ async function envoyerEnCuisine() {
   }
 }
 
-async function chargerCommandesEnCours() {
-  const toutes = await apiGet('/api/orders');
-  const mesCommandes = toutes.filter((o) => !['TERMINEE', 'ANNULEE'].includes(o.statut) &&
-    (USER.role !== 'serveur' || (o.servedBy && o.servedBy.id === USER.id)));
+// --- À inclure dans js/caisse.js ---
 
-  const container = document.getElementById('listeCommandesEnCours');
-  if (mesCommandes.length === 0) {
-    container.innerHTML = '<div class="empty-state">Aucune commande en cours.</div>';
+async function chargerCommandesEnCours() {
+  try {
+    const commandes = await apiGet('/api/orders/pending'); // Récupère toutes les commandes non archivées
+
+    const enAttente = commandes.filter(c => c.statut === 'en_attente');
+    const enCuisine = commandes.filter(c => c.statut !== 'en_attente' && c.statut !== 'annulee' && c.statut !== 'terminee');
+
+    afficherCommandesEnAttente(enAttente);
+    afficherCommandesEnCuisine(enCuisine);
+  } catch (err) {
+    console.error("Erreur chargement commandes:", err);
+  }
+}
+
+function afficherCommandesEnAttente(liste) {
+  const container = document.getElementById('listeCommandesEnAttente');
+  if (!container) return;
+
+  if (liste.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="color:#8a8168;">Aucune commande Web en attente</div>';
     return;
   }
-  const badgeClasses = { NOUVELLE: 'badge--wait', EN_PREPARATION: 'badge--wait', PRETE: 'badge--ok', CONFIRMEE: 'badge--wait' };
-  container.innerHTML = mesCommandes.map((o) => `
-    <div class="card" style="margin-bottom:0.8rem; display:flex; justify-content:space-between; align-items:center; gap:1rem;">
-      <div>
-        <strong>#${o.numero}</strong> - ${o.table ? 'Table ' + o.table : (o.type === 'a_emporter' ? 'À emporter' : o.type)}<br>
-        <small>${o.items.length} article(s) · ${formatMontant(o.montantTotal)}</small>
+
+  container.innerHTML = liste.map(c => `
+    <div class="card" style="margin-bottom: 0.8rem; border-left: 4px solid #e67e22;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>#${escapeHtml(c.numero || c.id)} — ${escapeHtml(c.nomClient)}</strong>
+        <span class="badge" style="background:#e67e22; color:#fff;">En attente</span>
       </div>
-      <div style="text-align:right;">
-        <span class="badge ${badgeClasses[o.statut] || 'badge--wait'}">${o.statut.replace('_', ' ')}</span><br>
-        ${o.statut === 'PRETE' ? `<button class="btn btn--sm btn--success" style="margin-top:0.4rem;" data-encaisser="${o.id}">Encaisser</button>` : ''}
+      <p style="margin: 0.4rem 0; font-size: 0.9rem;">
+        📞 <a href="tel:${escapeHtml(c.telClient)}" style="color:var(--primary); font-weight:bold;">${escapeHtml(c.telClient)}</a><br>
+        <em>${c.typeService === 'a_emporter' ? 'À emporter' : 'À l\'avance'}</em>
+      </p>
+      
+      <div class="ticket-sep"></div>
+      <div style="font-size:0.85rem;">
+        ${c.items.map(it => `<div>${it.quantite}× ${escapeHtml(it.nom)}</div>`).join('')}
+      </div>
+      <div class="ticket-total" style="font-size:0.95rem; margin-top:0.4rem;">
+        <span>Total</span><span>${formatMontant(c.montantTotal)}</span>
+      </div>
+
+      <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
+        <button class="btn btn--sm" onclick="validerCommande('${c.id}')" style="flex:1; background:#27ae60;">
+          ✅ Valider & Cuisine
+        </button>
+        <button class="btn btn--sm" onclick="annulerCommande('${c.id}')" style="flex:1; background:#c0392b;">
+          ❌ Annuler
+        </button>
       </div>
     </div>
   `).join('');
-  container.querySelectorAll('[data-encaisser]').forEach((btn) => btn.addEventListener('click', async () => {
-    await apiPatch(`/api/orders/${btn.dataset.encaisser}/statut`, { statut: 'TERMINEE' });
-    toast('Commande encaissée et terminée', 'success');
+}
+
+async function validerCommande(commandeId) {
+  try {
+    await apiPost(`/api/orders/${commandeId}/validate`, { statut: 'en_cours' });
+    toast('Commande validée et transmise en cuisine !', 'success');
     chargerCommandesEnCours();
-  }));
+  } catch (err) {
+    toast(err.message || 'Erreur lors de la validation', 'error');
+  }
+}
+
+async function annulerCommande(commandeId) {
+  if (!confirm('Voulez-vous vraiment annuler cette commande ?')) return;
+  try {
+    await apiPost(`/api/orders/${commandeId}/cancel`, { statut: 'annulee' });
+    toast('Commande annulée', 'info');
+    chargerCommandesEnCours();
+  } catch (err) {
+    toast(err.message || 'Erreur lors de l\'annulation', 'error');
+  }
 }
 
 init();

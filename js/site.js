@@ -237,22 +237,69 @@ document.addEventListener('DOMContentLoaded', () => {
   // La commande n'est JAMAIS créée automatiquement en ligne : ce formulaire sert uniquement
   // à préparer un récapitulatif clair, que le client confirme ensuite par appel ou WhatsApp.
   // C'est le personnel qui saisit la commande dans le système (Caisse) à réception de l'appel.
-  document.getElementById('formCommande').addEventListener('submit', (e) => {
+  // Remplace le bloc submit du formCommande dans js/site.js
+  document.getElementById('formCommande').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const type = fd.get('type');
-    const commandeSimulee = {
-      type,
-      client: { nom: fd.get('nom'), tel: fd.get('tel') },
+
+    const payload = {
+      typeService: type,
+      nomClient: fd.get('nom'),
+      telClient: fd.get('tel'),
+      notes: fd.get('notes') || '',
       items: panier,
-      notesGenerales: fd.get('notes') || '',
       montantTotal: totalPanier(),
-      avance: type === 'a_l_avance' ? { date: fd.get('date'), heure: fd.get('heure'), personnes: fd.get('personnes') } : null,
+      avance: type === 'a_l_avance' ? { date: fd.get('date'), heure: fd.get('heure'), personnes: fd.get('personnes') } : null
     };
-    afficherRecapitulatif(commandeSimulee);
-    fermerModales();
-    ouvrirModale('modalConfirmation');
+
+    try {
+      // 1. Envoi de la commande à l'API backend
+      const reponse = await apiPost('/api/orders', payload);
+      // reponse doit contenir : { success: true, commandeId: "...", numeroTicket: "...", pdfUrl: "/api/orders/123/pdf" }
+
+      toast('Commande transmise avec succès !', 'success');
+      afficherRecapitulatif(payload, reponse);
+      fermerModales();
+      ouvrirModale('modalConfirmation');
+
+      // Réinitialisation du panier
+      panier = [];
+      sauvegarderPanier();
+      afficherPanier();
+      e.target.reset();
+    } catch (err) {
+      toast(err.message || "Erreur lors de l'envoi de la commande", 'error');
+    }
   });
+
+  function afficherRecapitulatif(commande, reponseApi) {
+    const typeLabels = { a_emporter: 'À emporter', a_l_avance: 'Commande à l\'avance' };
+    const lignes = commande.items.map((it) =>
+        `<div class="ticket-row"><span>${it.quantite}× ${it.nom}</span><span>${formatMontant(it.prix * it.quantite)}</span></div>`
+    ).join('');
+
+    document.getElementById('ticketConfirmation').innerHTML = `
+    <h4>Ticket #${escapeHtml(reponseApi.numeroTicket || reponseApi.commandeId)}</h4>
+    <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">Statut : En attente de validation</p>
+    <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.typeService] || commande.typeService}</span></div>
+    ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${commande.avance.date} ${commande.avance.heure}</span></div>` : ''}
+    <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient)} (${escapeHtml(commande.telClient)})</span></div>
+    <div class="ticket-sep"></div>
+    ${lignes}
+    <div class="ticket-sep"></div>
+    <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal)}</span></div>
+  `;
+
+    // Lien pour le téléchargement du PDF généré par le serveur
+    const btnPdf = document.getElementById('btnTelechargerPdf');
+    if (reponseApi.pdfUrl) {
+      btnPdf.href = reponseApi.pdfUrl;
+      btnPdf.style.display = 'block';
+    } else {
+      btnPdf.style.display = 'none';
+    }
+  }
 
   document.getElementById('formReservation').addEventListener('submit', async (e) => {
     e.preventDefault();

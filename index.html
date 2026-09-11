@@ -239,16 +239,19 @@
   </div>
 </div>
 
-<!-- Modale récapitulatif -->
+<!-- Modale récapitulatif & Téléchargement du ticket -->
 <div class="modal-overlay" id="modalConfirmation">
   <div class="modal">
     <button class="modal-close" data-close-modal>✕</button>
     <div class="ticket" id="ticketConfirmation"></div>
-    <p style="text-align:center; font-size:0.85rem; margin-top:1rem;">📞 Votre commande n'est prise en compte qu'après confirmation par téléphone ou WhatsApp.</p>
-    <div style="display:flex; gap:0.6rem; margin-top:0.4rem;">
-      <a id="btnAppelerRecap" href="#" class="btn btn--ghost btn--block">📞 Appeler</a>
-      <a id="btnWhatsappRecap" href="#" target="_blank" class="btn btn--whatsapp btn--block">💬 WhatsApp</a>
+
+    <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;">
+      <a id="btnTelechargerPdf" href="#" target="_blank" class="btn btn--block">📄 Télécharger mon ticket PDF</a>
+      <p style="text-align:center; font-size:0.82rem; color:var(--paper-muted); margin:0;">
+        📞 Notre équipe peut vous appeler sur votre numéro pour confirmer la commande avant l'envoi en cuisine.
+      </p>
     </div>
+
     <button class="btn btn--ghost btn--block" style="margin-top:0.6rem;" data-close-modal>Fermer</button>
   </div>
 </div>
