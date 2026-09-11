@@ -17,24 +17,31 @@ function sauvegarderPanier() {
 function majBadgePanier() {
   const total = panier.reduce((s, it) => s + it.quantite, 0);
   const badge = document.getElementById('cartBadge');
-  badge.textContent = total;
-  badge.style.display = total > 0 ? 'flex' : 'none';
+  if (badge) {
+    badge.textContent = total;
+    badge.style.display = total > 0 ? 'flex' : 'none';
+  }
 }
 
 // ==== Chargement des produits ====
 async function chargerProduits() {
-  PRODUITS = await apiGet('/api/products');
-  construireOnglets();
-  afficherMenu();
-  afficherPopulaires();
-  remplirParfumsGateau();
+  try {
+    PRODUITS = await apiGet('/api/products');
+    construireOnglets();
+    afficherMenu();
+    afficherPopulaires();
+    remplirParfumsGateau();
+  } catch (err) {
+    console.error('Erreur chargement produits:', err);
+  }
 }
 
 function construireOnglets() {
   const categories = ['Tous', ...new Set(PRODUITS.map((p) => p.categorie))];
   const container = document.getElementById('tabsCategories');
+  if (!container) return;
   container.innerHTML = categories.map((c) =>
-    `<button class="tab ${c === categorieActive ? 'active' : ''}" data-cat="${c}">${c}</button>`
+      `<button class="tab ${c === categorieActive ? 'active' : ''}" data-cat="${c}">${c}</button>`
   ).join('');
   container.querySelectorAll('.tab').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -48,6 +55,7 @@ function construireOnglets() {
 function afficherMenu() {
   const liste = categorieActive === 'Tous' ? PRODUITS : PRODUITS.filter((p) => p.categorie === categorieActive);
   const grille = document.getElementById('grilleMenu');
+  if (!grille) return;
   if (liste.length === 0) {
     grille.innerHTML = '<div class="empty-state">Aucun produit dans cette catégorie pour le moment.</div>';
     return;
@@ -61,7 +69,7 @@ function afficherMenu() {
       </div>
       <p style="font-size:0.88rem; margin:0;">${p.description || ''}</p>
       ${!p.disponible ? '<span class="badge badge--out">Indisponible</span>' :
-        `<button class="btn btn--sm" data-add="${p.id}">Ajouter au panier</button>`}
+      `<button class="btn btn--sm" data-add="${p.id}">Ajouter au panier</button>`}
     </div>
   `).join('');
 
@@ -80,9 +88,12 @@ function afficherMenu() {
 
 function afficherPopulaires() {
   const top = PRODUITS.filter((p) => ['Plats', 'Fast-food', 'Pizzas'].includes(p.categorie) && p.disponible).slice(0, 3);
-  document.getElementById('platsPopulaires').innerHTML = top.map((p) => `
-    <div class="ticket-row"><span>${p.nom}</span><span>${formatMontant(p.prix)}</span></div>
-  `).join('');
+  const container = document.getElementById('platsPopulaires');
+  if (container) {
+    container.innerHTML = top.map((p) => `
+      <div class="ticket-row"><span>${p.nom}</span><span>${formatMontant(p.prix)}</span></div>
+    `).join('');
+  }
 }
 
 function remplirParfumsGateau() {
@@ -128,6 +139,7 @@ function totalPanier() {
 
 function afficherPanier() {
   const body = document.getElementById('cartBody');
+  if (!body) return;
   if (panier.length === 0) {
     body.innerHTML = '<div class="empty-state">Votre panier est vide.</div>';
   } else {
@@ -153,7 +165,8 @@ function afficherPanier() {
     body.querySelectorAll('[data-moins]').forEach((b) => b.addEventListener('click', () => changerQuantite(b.dataset.moins, -1)));
     body.querySelectorAll('[data-suppr]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); retirerDuPanier(b.dataset.suppr); }));
   }
-  document.getElementById('cartTotal').textContent = formatMontant(totalPanier());
+  const totalEl = document.getElementById('cartTotal');
+  if (totalEl) totalEl.textContent = formatMontant(totalPanier());
   majBadgePanier();
 }
 
@@ -175,6 +188,38 @@ function lienWhatsapp(message) {
 }
 function lienAppel() {
   return `tel:${NUMERO_TELEPHONE.replace(/\s+/g, '')}`;
+}
+
+function afficherRecapitulatif(commande, reponseApi) {
+  const typeLabels = { a_emporter: 'À emporter', a_l_avance: 'Commande à l\'avance' };
+  const lignes = commande.items.map((it) =>
+      `<div class="ticket-row"><span>${it.quantite}× ${it.nom}</span><span>${formatMontant(it.prix * it.quantite)}</span></div>`
+  ).join('');
+
+  const ticketContainer = document.getElementById('ticketConfirmation');
+  if (ticketContainer) {
+    ticketContainer.innerHTML = `
+      <h4>Ticket #${escapeHtml(reponseApi.numeroTicket || reponseApi.commandeId || '')}</h4>
+      <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">Statut : En attente de validation</p>
+      <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.typeService] || commande.typeService}</span></div>
+      ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${commande.avance.date} ${commande.avance.heure}</span></div>` : ''}
+      <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient)} (${escapeHtml(commande.telClient)})</span></div>
+      <div class="ticket-sep"></div>
+      ${lignes}
+      <div class="ticket-sep"></div>
+      <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal)}</span></div>
+    `;
+  }
+
+  const btnPdf = document.getElementById('btnTelechargerPdf');
+  if (btnPdf) {
+    if (reponseApi && reponseApi.pdfUrl) {
+      btnPdf.href = reponseApi.pdfUrl;
+      btnPdf.style.display = 'block';
+    } else {
+      btnPdf.style.display = 'none';
+    }
+  }
 }
 
 // ==== Initialisation ====
@@ -223,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
     e.target.reset();
   });
 
-  // Ouverture de la préparation de commande (aucune validation en ligne, juste un récapitulatif)
   document.getElementById('btnCommander').addEventListener('click', () => {
     if (panier.length === 0) return toast('Votre panier est vide', 'error');
     fermerPanier();
@@ -234,10 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('champsAvance').style.display = e.target.value === 'a_l_avance' ? 'block' : 'none';
   });
 
-  // La commande n'est JAMAIS créée automatiquement en ligne : ce formulaire sert uniquement
-  // à préparer un récapitulatif clair, que le client confirme ensuite par appel ou WhatsApp.
-  // C'est le personnel qui saisit la commande dans le système (Caisse) à réception de l'appel.
-  // Remplace le bloc submit du formCommande dans js/site.js
   document.getElementById('formCommande').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -254,16 +294,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      // 1. Envoi de la commande à l'API backend
       const reponse = await apiPost('/api/orders', payload);
-      // reponse doit contenir : { success: true, commandeId: "...", numeroTicket: "...", pdfUrl: "/api/orders/123/pdf" }
 
       toast('Commande transmise avec succès !', 'success');
       afficherRecapitulatif(payload, reponse);
       fermerModales();
       ouvrirModale('modalConfirmation');
 
-      // Réinitialisation du panier
       panier = [];
       sauvegarderPanier();
       afficherPanier();
@@ -272,34 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
       toast(err.message || "Erreur lors de l'envoi de la commande", 'error');
     }
   });
-
-  function afficherRecapitulatif(commande, reponseApi) {
-    const typeLabels = { a_emporter: 'À emporter', a_l_avance: 'Commande à l\'avance' };
-    const lignes = commande.items.map((it) =>
-        `<div class="ticket-row"><span>${it.quantite}× ${it.nom}</span><span>${formatMontant(it.prix * it.quantite)}</span></div>`
-    ).join('');
-
-    document.getElementById('ticketConfirmation').innerHTML = `
-    <h4>Ticket #${escapeHtml(reponseApi.numeroTicket || reponseApi.commandeId)}</h4>
-    <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">Statut : En attente de validation</p>
-    <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.typeService] || commande.typeService}</span></div>
-    ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${commande.avance.date} ${commande.avance.heure}</span></div>` : ''}
-    <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient)} (${escapeHtml(commande.telClient)})</span></div>
-    <div class="ticket-sep"></div>
-    ${lignes}
-    <div class="ticket-sep"></div>
-    <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal)}</span></div>
-  `;
-
-    // Lien pour le téléchargement du PDF généré par le serveur
-    const btnPdf = document.getElementById('btnTelechargerPdf');
-    if (reponseApi.pdfUrl) {
-      btnPdf.href = reponseApi.pdfUrl;
-      btnPdf.style.display = 'block';
-    } else {
-      btnPdf.style.display = 'none';
-    }
-  }
 
   document.getElementById('formReservation').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -316,38 +325,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-
-function afficherRecapitulatif(commande) {
-  const typeLabels = { a_emporter: 'À emporter', a_l_avance: 'Commande à l\'avance' };
-  const lignes = commande.items.map((it) =>
-    `<div class="ticket-row"><span>${it.quantite}× ${it.nom}</span><span>${formatMontant(it.prix * it.quantite)}</span></div>`
-  ).join('');
-  document.getElementById('ticketConfirmation').innerHTML = `
-    <h4>Récapitulatif - à confirmer</h4>
-    <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.type] || commande.type}</span></div>
-    ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${commande.avance.date} ${commande.avance.heure}</span></div>` : ''}
-    <div class="ticket-row"><span>Nom</span><span>${commande.client.nom}</span></div>
-    <div class="ticket-sep"></div>
-    ${lignes}
-    <div class="ticket-sep"></div>
-    <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal)}</span></div>
-  `;
-
-  let message = `Bonjour Le Bon Refuge, je souhaite confirmer ma commande :\n`;
-  commande.items.forEach((it) => { message += `- ${it.quantite}x ${it.nom}${it.options.length ? ' (' + it.options.join(', ') + ')' : ''}\n`; });
-  message += `Total : ${formatMontant(commande.montantTotal)}\n`;
-  message += `Type : ${typeLabels[commande.type] || commande.type}`;
-  if (commande.avance) message += ` - retrait le ${commande.avance.date} à ${commande.avance.heure}`;
-  message += `\nNom : ${commande.client.nom} - Tél : ${commande.client.tel}`;
-  if (commande.notesGenerales) message += `\nNote : ${commande.notesGenerales}`;
-
-  document.getElementById('btnAppelerRecap').href = lienAppel();
-  document.getElementById('btnWhatsappRecap').href = lienWhatsapp(message);
-
-  // Le panier n'est vidé qu'une fois le récapitulatif affiché, puisque c'est la dernière
-  // étape avant l'appel/WhatsApp de confirmation.
-  panier = [];
-  sauvegarderPanier();
-  afficherPanier();
-  document.getElementById('formCommande').reset();
-}
