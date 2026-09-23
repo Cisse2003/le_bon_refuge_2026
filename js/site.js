@@ -87,7 +87,7 @@ function afficherMenu(menu) {
 
   // Onglets
   tabsContainer.innerHTML = categories.map((cat, index) => `
-    <button class="tab-btn ${index === 0 ? 'active' : ''}" data-cat="${escapeHtml(cat)}">
+    <button class="tab-btn ${index === 0 ? 'open' : ''}" data-cat="${escapeHtml(cat)}">
       ${escapeHtml(cat)}
     </button>
   `).join('');
@@ -98,8 +98,8 @@ function afficherMenu(menu) {
   // Événements sur les onglets
   tabsContainer.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      tabsContainer.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      tabsContainer.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('open'));
+      btn.classList.add('open');
       rendreGrilleMenu(menu, btn.dataset.cat);
     });
   });
@@ -251,14 +251,14 @@ const Panier = {
     const drawer = document.getElementById('cartDrawer');
     const overlay = document.getElementById('overlay');
     if (drawer) drawer.classList.add('open');
-    if (overlay) overlay.classList.add('active');
+    if (overlay) overlay.classList.add('open');
   },
 
   fermerDrawer() {
     const drawer = document.getElementById('cartDrawer');
     const overlay = document.getElementById('overlay');
     if (drawer) drawer.classList.remove('open');
-    if (overlay) overlay.classList.remove('active');
+    if (overlay) overlay.classList.remove('open');
   }
 };
 
@@ -464,12 +464,12 @@ function afficherRecapitulatif(commande, reponseApi) {
 
 function ouvrirModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.classList.add('active');
+  if (modal) modal.classList.add('open');
 }
 
 function fermerModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.classList.remove('active');
+  if (modal) modal.classList.remove('open');
 }
 
 function initialiserModales() {
@@ -477,13 +477,13 @@ function initialiserModales() {
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = btn.closest('.modal-overlay');
-      if (modal) modal.classList.remove('active');
+      if (modal) modal.classList.remove('open');
     });
   });
 
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.remove('active');
+      if (e.target === overlay) overlay.classList.remove('open');
     });
   });
 }
