@@ -171,10 +171,14 @@ const Panier = {
       existant.quantite += 1;
     } else {
       this.items.push({
-        id: produit.id,
+        id: crypto.randomUUID ? crypto.randomUUID() : 'item-' + Date.now(),
+        productId: produit.id,
         nom: produit.nom,
-        prix: produit.prix,
-        quantite: 1
+        prix: Number(produit.prix) || 0,
+        quantite: 1,
+        poste: produit.poste || 'cuisine',
+        options: produit.options || [],
+        personnalisation: produit.personnalisation || null
       });
     }
     this.mettreAJour();
@@ -274,12 +278,26 @@ function initialiserPanier() {
 
   if (btnCommander) {
     btnCommander.addEventListener('click', () => {
+      console.log('🛒 Clic sur Passer commande');
+      console.log('Articles du panier :', Panier.getItems());
+
       if (Panier.getItems().length === 0) {
         alert('Votre panier est vide.');
         return;
       }
+
+      const modal = document.getElementById('modalCommande');
+
+      if (!modal) {
+        console.error('❌ Modale modalCommande introuvable dans le HTML');
+        alert('Erreur : la fenêtre de commande est introuvable.');
+        return;
+      }
+
       Panier.fermerDrawer();
-      ouvrirModal('modalCommande');
+      modal.classList.add('active');
+
+      console.log('✅ Modale de commande ouverte');
     });
   }
 }
@@ -306,12 +324,12 @@ function initialiserFormulaires() {
       const formData = new FormData(formCommande);
 
       const payload = {
-        typeService: formData.get('type'),
-        nomClient: formData.get('nom'),
-        telClient: formData.get('tel'),
+        type: formData.get('type'),
+        clientNom: formData.get('nom'),
+        clientTel: formData.get('tel'),
         notes: formData.get('notes'),
         items: Panier.getItems(),
-        montantTotal: Panier.getTotal()
+        total: Panier.getTotal()
       };
 
       if (formData.get('type') === 'a_l_avance') {
@@ -418,7 +436,7 @@ function afficherRecapitulatif(commande, reponseApi) {
       </p>
       <div class="ticket-row">
         <span>Type</span>
-        <span>${typeLabels[commande.typeService] || commande.typeService}</span>
+        <span>${typeLabels[commande.type] || commande.type}</span>
       </div>
       ${commande.avance ? `
         <div class="ticket-row">
@@ -428,14 +446,14 @@ function afficherRecapitulatif(commande, reponseApi) {
       ` : ''}
       <div class="ticket-row">
         <span>Client</span>
-        <span>${escapeHtml(commande.nomClient || '')} (${escapeHtml(commande.telClient || '')})</span>
+        <span>${escapeHtml(commande.clientNom || '')} (${escapeHtml(commande.clientTel || '')})</span>
       </div>
       <div class="ticket-sep"></div>
       ${lignes}
       <div class="ticket-sep"></div>
       <div class="ticket-total">
         <span>Total</span>
-        <span>${formatMontant(commande.montantTotal || 0)}</span>
+        <span>${formatMontant(commande.total || 0)}</span>
       </div>
     `;
   }
