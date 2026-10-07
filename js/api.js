@@ -1,6 +1,5 @@
-// Petite couche d'accès à l'API + notifications (utilisée par toutes les pages)
-
-async function api(method, url, body) {
+// Couche d'accès à l'API et Utilitaires
+async function apiRequest(method, url, body) {
   const opts = { method, headers: {}, credentials: 'same-origin' };
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json';
@@ -8,7 +7,7 @@ async function api(method, url, body) {
   }
   const res = await fetch(url, opts);
   let data = null;
-  try { data = await res.json(); } catch (e) { /* réponse vide (ex: fichier téléchargé) */ }
+  try { data = await res.json(); } catch (e) { /* Réponse non JSON */ }
   if (!res.ok) {
     const message = (data && data.error) || `Erreur ${res.status}`;
     throw new Error(message);
@@ -16,11 +15,13 @@ async function api(method, url, body) {
   return data;
 }
 
-const apiGet = (url) => api('GET', url);
-const apiPost = (url, body) => api('POST', url, body || {});
-const apiPut = (url, body) => api('PUT', url, body || {});
-const apiPatch = (url, body) => api('PATCH', url, body || {});
-const apiDelete = (url) => api('DELETE', url);
+// Objet API global réutilisé par site.js
+const API = {
+  getContact: () => apiRequest('GET', '/api/contact').catch(() => null),
+  getMenu: () => apiRequest('GET', '/api/menu'),
+  creerCommande: (payload) => apiRequest('POST', '/api/commandes', payload),
+  creerReservation: (payload) => apiRequest('POST', '/api/reservations', payload)
+};
 
 function ensureToastContainer() {
   let el = document.querySelector('.toast-container');
@@ -41,11 +42,6 @@ function toast(message, type) {
   setTimeout(() => el.remove(), 4200);
 }
 
-function formatMontant(n) {
-  // Franc guinéen (FG) : pas de décimales, séparateur de milliers "espace" (convention locale/française)
-  return Math.round(Number(n || 0)).toLocaleString('fr-FR') + ' FG';
-}
-
 function formatHeure(iso) {
   const d = new Date(iso);
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -53,7 +49,7 @@ function formatHeure(iso) {
 
 async function getCurrentUser() {
   try {
-    const { user } = await apiGet('/api/auth/me');
+    const { user } = await apiRequest('GET', '/api/auth/me');
     return user;
   } catch (e) {
     return null;
@@ -71,9 +67,4 @@ async function requireStaffAuth(rolesAutorises) {
     return null;
   }
   return user;
-}
-
-function connectSocket() {
-  // Version PHP : pas de WebSocket, le polling (setInterval) des pages suffit.
-  return null;
 }

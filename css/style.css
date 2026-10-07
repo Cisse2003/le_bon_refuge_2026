@@ -533,4 +533,74 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
 .toast-container { position: fixed; bottom: max(1.2rem, var(--sab)); right: max(1.2rem, var(--sar)); z-index: 300; display: flex; flex-direction: column; gap: 0.6rem; max-width: 90vw; }
 .toast { background: var(--bg-raised-2); color: var(--paper); padding: 0.8em 1.2em; border-radius: 8px; box-shadow: var(--shadow); border-left: 4px solid var(--accent); font-size: 0.9rem; }
 .toast.error { border-left-color: var(--danger); }
-.toast.success { border-left-color: var(--success); }
+.toast.success { border-left-color: var(--success); }$
+
+
+
+/* Modales & Overlays */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background: var(--surface, #1e1e1e);
+  padding: 1.8rem;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* Tiroir du panier (Cart Drawer) */
+.cart-drawer {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 100%;
+  max-width: 380px;
+  height: 100%;
+  background: var(--surface, #1e1e1e);
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s ease;
+}
+
+.cart-drawer.open {
+  right: 0;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1400;
+  display: none;
+}
+
+.overlay.active {
+  display: block;
+}
