@@ -508,9 +508,67 @@ function escapeHtml(str) {
 
 function getMenuFallback() {
   return [
-    { id: 1, nom: 'Tacos XL Poulet Tikka', categorie: 'Tacos', prix: 45000, description: 'Sauce fromagère maison, frites incluses.', populaire: true },
-    { id: 2, nom: 'Burger Le Refuge', categorie: 'Burgers', prix: 50000, description: 'Double steak 100g, cheddar fondu, oignons caramélisés.', populaire: true },
-    { id: 3, nom: 'Pizza Reine', categorie: 'Pizzas', prix: 65000, description: 'Base tomate, mozzarella, jambon, champignons.', populaire: false },
-    { id: 4, nom: 'Gaufre Chocolat', categorie: 'Desserts', prix: 20000, description: 'Nappage chocolat gourmand et chantilly.', populaire: true }
+    // Plats Chauds
+    { id: 1, nom: 'Riz gras poulet / poisson', categorie: 'Plats Chauds', prix: 25000, description: 'Servi chaud, recette maison.', populaire: true },
+    { id: 2, nom: 'Riz gras à la viande', categorie: 'Plats Chauds', prix: 30000, description: 'Riz gras savoureux accompagné de viande.', populaire: false },
+    { id: 3, nom: 'Garba poulet / poisson', categorie: 'Plats Chauds', prix: 50000, description: 'Plat traditionnel généreux.', populaire: true },
+    { id: 4, nom: 'Petit pois au poulet', categorie: 'Plats Chauds', prix: 40000, description: 'Servi avec morceau de poulet.', populaire: false },
+    { id: 5, nom: 'Petit pois à la viande', categorie: 'Plats Chauds', prix: 45000, description: 'Servi avec viande tendre.', populaire: false },
+    { id: 6, nom: 'Spaghetti au poulet', categorie: 'Plats Chauds', prix: 20000, description: 'Pâtes sautées avec poulet.', populaire: false },
+    { id: 7, nom: 'Spaghetti bolognaise', categorie: 'Plats Chauds', prix: 25000, description: 'Pâtes avec sauce bolognaise maison.', populaire: false },
+
+    // Poulet Braisé
+    { id: 8, nom: 'Demi-poulet braisé (+ frites ou alloco)', categorie: 'Poulet Braisé', prix: 55000, description: 'Accompagné au choix de frites ou alloco.', populaire: true },
+    { id: 9, nom: 'Poulet entier braisé (+ frites ou alloco)', categorie: 'Poulet Braisé', prix: 110000, description: 'Accompagné au choix de frites ou alloco.', populaire: true },
+
+    // Fast-Food
+    { id: 10, nom: 'Burger viande (+ frites)', categorie: 'Fast-Food', prix: 55000, description: 'Burger à la viande servi avec portion de frites.', populaire: true },
+    { id: 11, nom: 'Shawarma à la viande', categorie: 'Fast-Food', prix: 30000, description: 'Shawarma garni de viande assaisonnée.', populaire: false },
+    { id: 12, nom: 'Tacos poulet', categorie: 'Fast-Food', prix: 65000, description: 'Garni de poulet et frites.', populaire: true },
+    { id: 13, nom: 'Tacos viande hachée', categorie: 'Fast-Food', prix: 75000, description: 'Garni de viande hachée et frites.', populaire: false },
+
+    // Fataya
+    { id: 14, nom: 'Fataya poulet', categorie: 'Fast-Food', prix: 20000, description: 'Chaussons farcis au poulet.', populaire: false },
+    { id: 15, nom: 'Fataya viande', categorie: 'Fast-Food', prix: 25000, description: 'Chaussons farcis à la viande.', populaire: false },
+
+    // Pizzas
+    { id: 16, nom: 'Pizza Margherita', categorie: 'Pizzas', prix: 70000, description: 'Base tomate et fromage.', populaire: false },
+    { id: 17, nom: 'Pizza Poulet', categorie: 'Pizzas', prix: 90000, description: 'Base garnie de poulet et fromage.', populaire: true },
+    { id: 18, nom: 'Pizza Viande', categorie: 'Pizzas', prix: 95000, description: 'Base garnie de viande hachée et fromage.', populaire: false },
+    { id: 19, nom: 'Pizza Thongwenmo', categorie: 'Pizzas', prix: 100000, description: 'Spécialité garnie de la maison.', populaire: false },
+
+    // Crèmerie & Desserts
+    { id: 20, nom: 'Glace (petit format)', categorie: 'Crèmerie', prix: 5000, description: 'Glace rafraîchissante petit format.', populaire: false },
+    { id: 21, nom: 'Glace (grand format)', categorie: 'Crèmerie', prix: 10000, description: 'Glace rafraîchissante grand format.', populaire: false },
+
+    // Boissons
+    { id: 22, nom: 'Boisson XL', categorie: 'Boissons', prix: 10000, description: 'Format XL.', populaire: false },
+    { id: 23, nom: 'Fanta', categorie: 'Boissons', prix: 10000, description: 'Cannette / Bouteille.', populaire: false },
+    { id: 24, nom: 'Coca-Cola', categorie: 'Boissons', prix: 10000, description: 'Cannette / Bouteille.', populaire: true },
+    { id: 25, nom: 'Sagiko', categorie: 'Boissons', prix: 10000, description: 'Boisson aux fruits.', populaire: false },
+    { id: 26, nom: 'Fruitalos', categorie: 'Boissons', prix: 9000, description: 'Jus de fruits.', populaire: false },
+    { id: 27, nom: 'Comando', categorie: 'Boissons', prix: 11000, description: 'Boisson énergisante.', populaire: false },
+    { id: 28, nom: 'Vimto', categorie: 'Boissons', prix: 11000, description: 'Boisson gazeuse aux fruits.', populaire: false },
+    { id: 29, nom: 'Red Bull', categorie: 'Boissons', prix: 24000, description: 'Boisson énergisante.', populaire: false },
+    { id: 30, nom: 'Capri-Sun', categorie: 'Boissons', prix: 5000, description: 'Poche de jus.', populaire: false },
+    { id: 31, nom: 'Jus (petit bidon)', categorie: 'Boissons', prix: 7000, description: 'Jus en petit format.', populaire: false },
+    { id: 32, nom: 'Jus (carton)', categorie: 'Boissons', prix: 24000, description: 'Jus grand format.', populaire: false },
+    { id: 33, nom: 'Eau (petit bidon)', categorie: 'Boissons', prix: 5000, description: 'Eau minérale 0,5L.', populaire: false },
+    { id: 34, nom: 'Eau (grand bidon)', categorie: 'Boissons', prix: 9000, description: 'Eau minérale 1,5L.', populaire: false },
+    { id: 35, nom: 'Lait Manan (grand)', categorie: 'Boissons', prix: 29000, description: 'Lait Manan grand format.', populaire: false },
+    { id: 36, nom: 'Lait Manan (petit)', categorie: 'Boissons', prix: 18000, description: 'Lait Manan petit format.', populaire: false },
+    { id: 37, nom: 'Lait Malipan (grand)', categorie: 'Boissons', prix: 24000, description: 'Lait Malipan grand format.', populaire: false },
+    { id: 38, nom: 'Lait Malipan (petit)', categorie: 'Boissons', prix: 18000, description: 'Lait Malipan petit format.', populaire: false },
+
+    // Gâteaux d'anniversaire
+    { id: 39, nom: 'Gâteau Petit Format (Standard)', categorie: 'Gâteaux', prix: 85000, description: 'Option sans chocolat.', populaire: false },
+    { id: 40, nom: 'Gâteau Petit Format (Chocolat)', categorie: 'Gâteaux', prix: 125000, description: 'Gâteau nappé / fourré au chocolat.', populaire: false },
+    { id: 41, nom: 'Gâteau Moyen Format (Standard)', categorie: 'Gâteaux', prix: 105000, description: 'Option sans chocolat.', populaire: false },
+    { id: 42, nom: 'Gâteau Moyen Format (Chocolat)', categorie: 'Gâteaux', prix: 155000, description: 'Gâteau nappé / fourré au chocolat.', populaire: true },
+    { id: 43, nom: 'Gâteau Grand Format (Standard)', categorie: 'Gâteaux', prix: 200000, description: 'Option sans chocolat.', populaire: false },
+    { id: 44, nom: 'Gâteau Grand Format (Chocolat)', categorie: 'Gâteaux', prix: 255000, description: 'Gâteau nappé / fourré au chocolat.', populaire: false },
+
+    // Suppléments
+    { id: 45, nom: 'Supplément Garniture (Frites / Alloco)', categorie: 'Suppléments', prix: 5000, description: 'Portion supplémentaire.', populaire: false }
   ];
 }
