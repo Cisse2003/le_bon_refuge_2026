@@ -20,28 +20,33 @@ let MENU_DATA = [];
 
 async function chargerDonneesEtContact() {
   try {
-    // Récupération des infos du restaurant (téléphone, réseaux, etc.)
-    if (typeof API !== 'undefined' && API.getContact) {
-      const contact = await API.getContact();
-      injecterInfosContact(contact);
+    // Récupération des informations de contact
+    if (typeof apiGet === 'function') {
+      try {
+        const contact = await apiGet('/api/settings/contact');
+        injecterInfosContact(contact);
+      } catch (err) {
+        console.warn('Impossible de charger les contacts :', err);
+      }
     }
 
     // Récupération du menu
-    if (typeof API !== 'undefined' && API.getMenu) {
-      MENU_DATA = await API.getMenu();
-    } else {
-      // Fallback de sécurité si l'API n'est pas encore connectée
-      MENU_DATA = getMenuFallback();
+    const menu = await apiGet('/api/products');
+
+    if (!Array.isArray(menu)) {
+      throw new Error('Le serveur n’a pas renvoyé une liste de plats.');
     }
+
+    MENU_DATA = menu;
 
     afficherMenu(MENU_DATA);
     afficherPlatsPopulaires(MENU_DATA);
     remplirParfumsGateau(MENU_DATA);
 
+    console.log('Menu chargé avec succès :', MENU_DATA.length, 'plats');
   } catch (err) {
-    console.error('Erreur lors du chargement des données :', err);
+    console.error('Erreur lors du chargement du menu :', err);
 
-    // Afficher le menu de secours si le chargement échoue
     MENU_DATA = getMenuFallback();
     afficherMenu(MENU_DATA);
     afficherPlatsPopulaires(MENU_DATA);
