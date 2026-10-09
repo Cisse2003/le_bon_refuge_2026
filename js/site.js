@@ -521,8 +521,83 @@ function afficherRecapitulatif(commande, reponseApi) {
   /*
    * Bouton PDF
    */
-  const btnPdf =
-      document.getElementById('btnTelechargerPdf');
+
+  const btnPdf = document.getElementById('btnTelechargerPdf');
+
+  if (btnPdf) {
+    // Le bouton reste visible, même si l'API ne fournit pas pdfUrl.
+    btnPdf.style.display = 'inline-flex';
+    btnPdf.removeAttribute('target');
+    btnPdf.removeAttribute('href');
+    btnPdf.removeAttribute('download');
+
+    btnPdf.onclick = function (e) {
+      e.preventDefault();
+
+      const ticket = document.getElementById('ticketConfirmation');
+      if (!ticket) {
+        alert('Impossible de récupérer le ticket.');
+        return;
+      }
+
+      const fenetre = window.open('', '_blank');
+
+      if (!fenetre) {
+        alert('Autorise les fenêtres pop-up pour télécharger le ticket.');
+        return;
+      }
+
+      fenetre.document.open();
+      fenetre.document.write(`
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <title>Ticket Le Bon Refuge</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            color: #222;
+          }
+          h2, h4 { text-align: center; }
+          .ticket-row, .ticket-total {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 8px 0;
+            border-bottom: 1px dashed #ccc;
+          }
+          .ticket-total { font-weight: bold; }
+          .ticket-sep { margin: 15px 0; }
+          @media print {
+            body { margin: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <h2>LE BON REFUGE</h2>
+        <p style="text-align:center">Ticket de commande</p>
+        ${ticket.innerHTML}
+        <p style="text-align:center; margin-top:25px">
+          Merci pour votre confiance !
+        </p>
+        <script>
+          window.onload = function () {
+            window.setTimeout(function () {
+              window.print();
+            }, 300);
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+      fenetre.document.close();
+    };
+  }
+
 
   if (btnPdf) {
     if (dataApi.pdfUrl) {
