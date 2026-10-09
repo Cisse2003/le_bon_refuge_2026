@@ -446,8 +446,7 @@ footer {
   justify-content: center;
 }
 
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
-.overlay.open { opacity: 1; pointer-events: auto; }
+
 
 /* ---------- Modal ---------- */
 
@@ -578,15 +577,15 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
 
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1400;
-  display: none;
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 
-.overlay.active {
-  display: block;
+.overlay.open {
+  opacity: 1;
+  pointer-events: auto;
 }
