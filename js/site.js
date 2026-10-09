@@ -171,7 +171,7 @@ const Panier = {
       existant.quantite += 1;
     } else {
       this.items.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : 'item-' + Date.now(),
+        id: genererIdUnique(),
         productId: produit.id,
         nom: produit.nom,
         prix: Number(produit.prix) || 0,
@@ -395,9 +395,16 @@ function initialiserFormulaires() {
 
       const itemGateau = {
         id: 'gateau-' + Date.now(),
+        productId: null,
         nom: `Gâteau ${formData.get('taille')} (${formData.get('parfum')})`,
-        prix: 150000, // Prix estimé/base
-        quantite: 1
+        prix: 150000,
+        quantite: 1,
+        poste: 'cuisine',
+        options: [],
+        personnalisation: {
+          taille: formData.get('taille'),
+          parfum: formData.get('parfum')
+        }
       };
 
       Panier.ajouter(itemGateau);
@@ -420,58 +427,127 @@ function afficherRecapitulatif(commande, reponseApi) {
   const dataApi = reponseApi || {};
   const items = commande.items || [];
 
+  const numeroTicket =
+      dataApi.numeroTicket ||
+      dataApi.numero ||
+      dataApi.commandeId ||
+      'EN-COURS';
+
   const lignes = items.map((it) => `
     <div class="ticket-row">
-      <span>${it.quantite}× ${escapeHtml(it.nom)}</span>
-      <span>${formatMontant(it.prix * it.quantite)}</span>
+      <span>
+        ${it.quantite}× ${escapeHtml(it.nom)}
+      </span>
+
+      <span>
+        ${formatMontant(
+      Number(it.prix || 0) * Number(it.quantite || 1)
+  )}
+      </span>
     </div>
   `).join('');
 
-  const ticketContainer = document.getElementById('ticketConfirmation');
+  const ticketContainer =
+      document.getElementById('ticketConfirmation');
+
   if (ticketContainer) {
     ticketContainer.innerHTML = `
-      <h4>Ticket #${escapeHtml(dataApi.numeroTicket || dataApi.commandeId || 'EN-COURS')}</h4>
-      <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">
+      <h4>
+        Ticket #${escapeHtml(String(numeroTicket))}
+      </h4>
+
+      <p style="
+        text-align:center;
+        font-size:0.85rem;
+        margin-bottom:0.5rem;
+        color:#8a8168;
+      ">
         Statut : En attente de validation
       </p>
+
       <div class="ticket-row">
         <span>Type</span>
-        <span>${typeLabels[commande.type] || commande.type}</span>
+        <span>
+          ${escapeHtml(
+        typeLabels[commande.type] || commande.type || ''
+    )}
+        </span>
       </div>
+
       ${commande.avance ? `
         <div class="ticket-row">
           <span>Retrait</span>
-          <span>${escapeHtml(commande.avance.date || '')} ${escapeHtml(commande.avance.heure || '')}</span>
+          <span>
+            ${escapeHtml(commande.avance.date || '')}
+            ${escapeHtml(commande.avance.heure || '')}
+          </span>
         </div>
+
+        ${commande.avance.personnes ? `
+          <div class="ticket-row">
+            <span>Personnes</span>
+            <span>
+              ${escapeHtml(String(commande.avance.personnes))}
+            </span>
+          </div>
+        ` : ''}
       ` : ''}
+
       <div class="ticket-row">
         <span>Client</span>
-        <span>${escapeHtml(commande.clientNom || '')} (${escapeHtml(commande.clientTel || '')})</span>
+        <span>
+          ${escapeHtml(commande.clientNom || '')}
+          (${escapeHtml(commande.clientTel || '')})
+        </span>
       </div>
+
       <div class="ticket-sep"></div>
+
       ${lignes}
+
       <div class="ticket-sep"></div>
+
       <div class="ticket-total">
         <span>Total</span>
-        <span>${formatMontant(commande.total || 0)}</span>
+        <span>
+          ${formatMontant(
+        commande.total || Panier.getTotal()
+    )}
+        </span>
       </div>
     `;
   }
 
-  // Gestion du bouton de téléchargement du PDF
-  const btnPdf = document.getElementById('btnTelechargerPdf');
-  if (btnPdf) {
-    const hasValidPdf = dataApi && dataApi.pdfUrl && dataApi.pdfUrl !== '#';
+  /*
+   * Bouton PDF
+   */
+  const btnPdf =
+      document.getElementById('btnTelechargerPdf');
 
-    if (hasValidPdf) {
-      if ('href' in btnPdf) {
-        btnPdf.href = dataApi.pdfUrl;
-      } else {
-        btnPdf.setAttribute('data-href', dataApi.pdfUrl);
-      }
-      btnPdf.style.display = 'inline-block';
+  if (btnPdf) {
+    if (dataApi.pdfUrl) {
+      btnPdf.href = dataApi.pdfUrl;
+      btnPdf.target = '_blank';
+      btnPdf.rel = 'noopener noreferrer';
+
+      /*
+       * On demande au navigateur de télécharger le fichier
+       * lorsqu'il le peut.
+       */
+      btnPdf.setAttribute('download', '');
+
+      btnPdf.style.display = 'inline-flex';
+
+      console.log(
+          '📄 Ticket PDF disponible :',
+          dataApi.pdfUrl
+      );
     } else {
       btnPdf.style.display = 'none';
+
+      console.warn(
+          '⚠️ Aucun PDF retourné par le serveur.'
+      );
     }
   }
 }
@@ -488,6 +564,17 @@ function ouvrirModal(modalId) {
 function fermerModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) modal.classList.remove('active');
+}
+
+function genererIdUnique() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID();
+  }
+
+  return 'item-' +
+      Date.now() +
+      '-' +
+      Math.random().toString(36).substring(2, 10);
 }
 
 function initialiserModales() {

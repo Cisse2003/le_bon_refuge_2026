@@ -1,19 +1,56 @@
 // Petite couche d'accès à l'API + notifications (utilisée par toutes les pages)
 
 async function api(method, url, body) {
-  const opts = { method, headers: {}, credentials: 'same-origin' };
+  const opts = {
+    method,
+    headers: {},
+    credentials: 'same-origin'
+  };
+
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
   }
+
   const res = await fetch(url, opts);
-  let data = null;
-  try { data = await res.json(); } catch (e) { /* réponse vide (ex: fichier téléchargé) */ }
+
   if (!res.ok) {
-    const message = (data && data.error) || `Erreur ${res.status}`;
+    let message = `Erreur ${res.status}`;
+
+    try {
+      const data = await res.json();
+
+      if (data && data.error) {
+        message = data.error;
+      }
+    } catch (e) {
+      // La réponse n'est pas du JSON
+    }
+
     throw new Error(message);
   }
-  return data;
+
+  /*
+   * Certaines routes peuvent retourner du JSON,
+   * d'autres un fichier.
+   */
+  const contentType = res.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    return await res.json();
+  }
+
+  if (contentType.includes('application/pdf')) {
+    return await res.blob();
+  }
+
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return text;
+  }
 }
 
 const apiGet = (url) => api('GET', url);
@@ -88,7 +125,13 @@ const API = {
   },
 
   async creerCommande(payload) {
-    return await apiPost('/api/orders', payload);
+    console.log('📤 Création de la commande :', payload);
+
+    const reponse = await apiPost('/api/orders', payload);
+
+    console.log('📥 Réponse serveur :', reponse);
+
+    return reponse;
   },
 
   async creerReservation(payload) {

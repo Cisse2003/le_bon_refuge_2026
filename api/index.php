@@ -5,6 +5,10 @@
  */
 
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 startSession();
 
@@ -176,6 +180,58 @@ if ($segments[0] === 'orders') {
     $sub = $segments[2] ?? null;
     $itemId = $segments[3] ?? null;
 
+    // ============================================================
+// TICKET PDF PUBLIC
+// GET /api/orders/{id}/pdf
+// ============================================================
+    if ($method === 'GET' && $id && $sub === 'pdf') {
+
+        $order = fetchOrderById($pdo, $id);
+
+        if (!$order) {
+            http_response_code(404);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Commande introuvable';
+            exit;
+        }
+
+        try {
+            $pdfUrl = genererTicketPdf($pdo, $id);
+
+            $fichierPdf = __DIR__ . '/../uploads/tickets/' .
+                basename(parse_url($pdfUrl, PHP_URL_PATH));
+
+            if (!file_exists($fichierPdf)) {
+                throw new Exception('Fichier PDF introuvable après génération.');
+            }
+
+            header('Content-Type: application/pdf');
+            header(
+                'Content-Disposition: attachment; filename="' .
+                basename($fichierPdf) .
+                '"'
+            );
+            header('Content-Length: ' . filesize($fichierPdf));
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            readfile($fichierPdf);
+            exit;
+
+        } catch (Throwable $e) {
+
+            error_log(
+                '[LE BON REFUGE] Erreur génération PDF : ' .
+                $e->getMessage()
+            );
+
+            http_response_code(500);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Impossible de générer le ticket PDF.';
+            exit;
+        }
+    }
+
     if ($method === 'GET' && !$id) {
         requireAuth();
         $orders = fetchOrders($pdo);
@@ -237,10 +293,25 @@ if ($segments[0] === 'orders') {
             'utilisateur'    => $user['username'] ?? 'Client',
             'role'           => $user['role'] ?? 'client',
             'action'         => 'CREATION_COMMANDE',
-            'nouvelleValeur' => "Total: $total €"
+            'nouvelleValeur' => "Total: $total FG"
         ]);
 
         $order = fetchOrderById($pdo, $orderId);
+
+        $pdfUrl = null;
+
+        try {
+            $pdfUrl = genererTicketPdf($pdo, $orderId);
+        } catch (Throwable $e) {
+            error_log(
+                '[LE BON REFUGE] Erreur génération ticket PDF : ' .
+                $e->getMessage()
+            );
+        }
+
+        $order['numeroTicket'] = 'LR-' . $order['numero'];
+        $order['pdfUrl'] = $pdfUrl;
+
         jsonResponse($order, 201);
     }
     if ($method === 'PATCH' && $id && !$sub) {
@@ -803,6 +874,347 @@ jsonError('Route introuvable: ' . $route, 404);
 // ============================================================
 // HELPERS
 // ============================================================
+
+function genererTicketPdf(PDO $pdo, string $orderId): string
+{
+    $order = fetchOrderById($pdo, $orderId);
+
+    if (!$order) {
+        throw new Exception('Commande introuvable.');
+    }
+
+    /*
+     * Dossier de stockage
+     */
+    $dossier = __DIR__ . '/../uploads/tickets';
+
+    if (!is_dir($dossier)) {
+        if (!mkdir($dossier, 0755, true) && !is_dir($dossier)) {
+            throw new Exception(
+                'Impossible de créer le dossier des tickets PDF.'
+            );
+        }
+    }
+
+    /*
+     * Nom du fichier
+     */
+    $nomFichier = 'ticket-' .
+        preg_replace('/[^a-zA-Z0-9_-]/', '-', $order['id']) .
+        '.pdf';
+
+    $cheminFichier = $dossier . '/' . $nomFichier;
+
+    /*
+     * Configuration Dompdf
+     */
+    $options = new Options();
+
+    $options->set('isRemoteEnabled', true);
+    $options->set('defaultFont', 'DejaVu Sans');
+
+    $dompdf = new Dompdf($options);
+
+    /*
+     * Construction des lignes du ticket
+     */
+    $lignes = '';
+
+    foreach ($order['items'] as $item) {
+
+        $nom = htmlspecialchars(
+            $item['nom'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        );
+
+        $quantite = (int)($item['quantite'] ?? 1);
+        $prix = (int)($item['prix'] ?? 0);
+        $sousTotal = $quantite * $prix;
+
+        $lignes .= '
+            <tr>
+                <td class="article">
+                    ' . $quantite . ' × ' . $nom . '
+                </td>
+                <td class="prix">
+                    ' . number_format(
+                $sousTotal,
+                0,
+                ',',
+                ' '
+            ) . ' FG
+                </td>
+            </tr>
+        ';
+    }
+
+    /*
+     * Type de commande
+     */
+    $types = [
+        'a_emporter'  => 'À emporter',
+        'a_l_avance'  => 'Commande à l’avance',
+        'sur_place'  => 'Sur place'
+    ];
+
+    $typeCommande =
+        $types[$order['type'] ?? ''] ??
+        ($order['type'] ?? '');
+
+    /*
+     * HTML du ticket
+     */
+    $html = '
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+
+        <style>
+
+            @page {
+                margin: 12mm;
+            }
+
+            body {
+                font-family: DejaVu Sans, sans-serif;
+                font-size: 11px;
+                color: #222;
+                margin: 0;
+                padding: 0;
+            }
+
+            .ticket {
+                width: 100%;
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 15px;
+            }
+
+            .restaurant {
+                font-size: 22px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 10px;
+                color: #666;
+            }
+
+            .numero {
+                margin-top: 10px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+
+            .separator {
+                border-top: 1px dashed #777;
+                margin: 12px 0;
+            }
+
+            .info {
+                margin-bottom: 4px;
+            }
+
+            .label {
+                font-weight: bold;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+
+            td {
+                padding: 5px 0;
+                vertical-align: top;
+            }
+
+            td.prix {
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            .total {
+                font-size: 15px;
+                font-weight: bold;
+            }
+
+            .statut {
+                text-align: center;
+                margin: 12px 0;
+                padding: 8px;
+                border: 1px solid #aaa;
+                font-weight: bold;
+            }
+
+            .footer {
+                text-align: center;
+                margin-top: 20px;
+                font-size: 9px;
+                color: #777;
+            }
+
+        </style>
+    </head>
+
+    <body>
+
+        <div class="ticket">
+
+            <div class="header">
+
+                <div class="restaurant">
+                    LE BON REFUGE
+                </div>
+
+                <div class="subtitle">
+                    Ticket de commande
+                </div>
+
+                <div class="numero">
+                    Ticket #' . htmlspecialchars(
+            'LR-' . $order['numero'],
+            ENT_QUOTES,
+            'UTF-8'
+        ) . '
+                </div>
+
+            </div>
+
+            <div class="separator"></div>
+
+            <div class="info">
+                <span class="label">Client :</span>
+                ' . htmlspecialchars(
+            $order['clientNom'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        ) . '
+            </div>
+
+            <div class="info">
+                <span class="label">Téléphone :</span>
+                ' . htmlspecialchars(
+            $order['clientTel'] ?? '',
+            ENT_QUOTES,
+            'UTF-8'
+        ) . '
+            </div>
+
+            <div class="info">
+                <span class="label">Type :</span>
+                ' . htmlspecialchars(
+            $typeCommande,
+            ENT_QUOTES,
+            'UTF-8'
+        ) . '
+            </div>
+
+            <div class="info">
+                <span class="label">Date :</span>
+                ' . htmlspecialchars(
+            $order['dateCreation'] ?? date('Y-m-d H:i:s'),
+            ENT_QUOTES,
+            'UTF-8'
+        ) . '
+            </div>
+
+            <div class="statut">
+                COMMANDE EN ATTENTE DE VALIDATION
+            </div>
+
+            <div class="separator"></div>
+
+            <table>
+                <tbody>
+                    ' . $lignes . '
+                </tbody>
+            </table>
+
+            <div class="separator"></div>
+
+            <table>
+                <tr>
+                    <td class="total">
+                        TOTAL
+                    </td>
+
+                    <td class="prix total">
+                        ' . number_format(
+            (int)$order['total'],
+            0,
+            ',',
+            ' '
+        ) . ' FG
+                    </td>
+                </tr>
+            </table>
+
+            ' . (
+        !empty($order['notes'])
+            ? '
+                    <div class="separator"></div>
+                    <div>
+                        <strong>Notes :</strong><br>
+                        ' . nl2br(
+                htmlspecialchars(
+                    $order['notes'],
+                    ENT_QUOTES,
+                    'UTF-8'
+                )
+            ) . '
+                    </div>
+                  '
+            : ''
+        ) . '
+
+            <div class="footer">
+                Merci pour votre commande.<br>
+                LE BON REFUGE
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    ';
+
+    /*
+     * Génération PDF
+     */
+    $dompdf->loadHtml($html, 'UTF-8');
+
+    $dompdf->setPaper('A5', 'portrait');
+
+    $dompdf->render();
+
+    /*
+     * Sauvegarde
+     */
+    file_put_contents(
+        $cheminFichier,
+        $dompdf->output()
+    );
+
+    if (!file_exists($cheminFichier)) {
+        throw new Exception(
+            'Le fichier PDF n’a pas pu être créé.'
+        );
+    }
+
+    /*
+     * URL publique
+     */
+    return '/api/orders/' .
+        rawurlencode($orderId) .
+        '/pdf';
+}
 
 function mapProduct(array $r): array {
     return [
