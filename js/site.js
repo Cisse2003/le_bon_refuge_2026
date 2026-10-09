@@ -353,13 +353,7 @@ function initialiserFormulaires() {
       }
 
       try {
-        let reponse = {};
-        if (typeof API !== 'undefined' && API.creerCommande) {
-          reponse = await API.creerCommande(payload);
-        } else {
-          // Simulation si API non liée
-          reponse = { numeroTicket: 'REF-' + Math.floor(1000 + Math.random() * 9000), pdfUrl: '#' };
-        }
+        const reponse = await apiPost('/api/orders', payload);
 
         fermerModal('modalCommande');
         afficherRecapitulatif(payload, reponse);
@@ -382,9 +376,7 @@ function initialiserFormulaires() {
       const payload = Object.fromEntries(formData.entries());
 
       try {
-        if (typeof API !== 'undefined' && API.creerReservation) {
-          await API.creerReservation(payload);
-        }
+        await apiPost('/api/reservations', payload);
         alert('Votre demande de réservation a été envoyée ! Nous vous contacterons pour confirmer.');
         formReservation.reset();
       } catch (err) {
@@ -430,214 +422,173 @@ function initialiserFormulaires() {
    5. RÉCAPITULATIF ET CONFIRMATION
    ========================================================================== */
 
-function afficherRecapitulatif(commande, reponseApi) {
-  const typeLabels = {
-    a_emporter: 'À emporter',
-    a_l_avance: 'Commande à l\'avance'
-  };
 
-  const dataApi = reponseApi || {};
-  const items = commande.items || [];
-
-  const numeroTicket =
-      dataApi.numeroTicket ||
-      dataApi.numero ||
-      dataApi.commandeId ||
-      'EN-COURS';
-
-  const lignes = items.map((it) => `
-    <div class="ticket-row">
-      <span>
-        ${it.quantite}× ${escapeHtml(it.nom)}
-      </span>
-
-      <span>
-        ${formatMontant(
-      Number(it.prix || 0) * Number(it.quantite || 1)
-  )}
-      </span>
-    </div>
-  `).join('');
-
-  const ticketContainer =
-      document.getElementById('ticketConfirmation');
-
-  if (ticketContainer) {
-    ticketContainer.innerHTML = `
-      <h4>
-        Ticket #${escapeHtml(String(numeroTicket))}
-      </h4>
-
-      <p style="
-        text-align:center;
-        font-size:0.85rem;
-        margin-bottom:0.5rem;
-        color:#8a8168;
-      ">
-        Statut : En attente de validation
-      </p>
-
-      <div class="ticket-row">
-        <span>Type</span>
-        <span>
-          ${escapeHtml(
-        typeLabels[commande.type] || commande.type || ''
-    )}
-        </span>
-      </div>
-
-      ${commande.avance ? `
-        <div class="ticket-row">
-          <span>Retrait</span>
-          <span>
-            ${escapeHtml(commande.avance.date || '')}
-            ${escapeHtml(commande.avance.heure || '')}
-          </span>
-        </div>
-
-        ${commande.avance.personnes ? `
-          <div class="ticket-row">
-            <span>Personnes</span>
-            <span>
-              ${escapeHtml(String(commande.avance.personnes))}
-            </span>
-          </div>
-        ` : ''}
-      ` : ''}
-
-      <div class="ticket-row">
-        <span>Client</span>
-        <span>
-          ${escapeHtml(commande.clientNom || '')}
-          (${escapeHtml(commande.clientTel || '')})
-        </span>
-      </div>
-
-      <div class="ticket-sep"></div>
-
-      ${lignes}
-
-      <div class="ticket-sep"></div>
-
-      <div class="ticket-total">
-        <span>Total</span>
-        <span>
-          ${formatMontant(
-        commande.total || Panier.getTotal()
-    )}
-        </span>
-      </div>
-    `;
-  }
-
-  /*
-   * Bouton PDF
-   */
-
+function afficherRecapitulatif(dataApi, commande) {
+  const modal = document.getElementById('modalConfirmation');
+  const contenu = document.getElementById('contenuConfirmation');
   const btnPdf = document.getElementById('btnTelechargerPdf');
 
-  if (btnPdf) {
-    // Le bouton reste visible, même si l'API ne fournit pas pdfUrl.
-    btnPdf.style.display = 'inline-flex';
-    btnPdf.removeAttribute('target');
-    btnPdf.removeAttribute('href');
-    btnPdf.removeAttribute('download');
-
-    btnPdf.onclick = function (e) {
-      e.preventDefault();
-
-      const ticket = document.getElementById('ticketConfirmation');
-      if (!ticket) {
-        alert('Impossible de récupérer le ticket.');
-        return;
-      }
-
-      const fenetre = window.open('', '_blank');
-
-      if (!fenetre) {
-        alert('Autorise les fenêtres pop-up pour télécharger le ticket.');
-        return;
-      }
-
-      fenetre.document.open();
-      fenetre.document.write(`
-      <!DOCTYPE html>
-      <html lang="fr">
-      <head>
-        <meta charset="UTF-8">
-        <title>Ticket Le Bon Refuge</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 30px auto;
-            padding: 20px;
-            color: #222;
-          }
-          h2, h4 { text-align: center; }
-          .ticket-row, .ticket-total {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
-            padding: 8px 0;
-            border-bottom: 1px dashed #ccc;
-          }
-          .ticket-total { font-weight: bold; }
-          .ticket-sep { margin: 15px 0; }
-          @media print {
-            body { margin: 0; }
-          }
-        </style>
-      </head>
-      <body>
-        <h2>LE BON REFUGE</h2>
-        <p style="text-align:center">Ticket de commande</p>
-        ${ticket.innerHTML}
-        <p style="text-align:center; margin-top:25px">
-          Merci pour votre confiance !
-        </p>
-        <script>
-          window.onload = function () {
-            window.setTimeout(function () {
-              window.print();
-            }, 300);
-          };
-        <\/script>
-      </body>
-      </html>
-    `);
-      fenetre.document.close();
-    };
+  if (!modal || !contenu) {
+    console.error('Modal de confirmation ou contenu introuvable.');
+    return;
   }
 
+  // Récupérer les informations de la commande
+  const numeroCommande =
+      dataApi?.numero ||
+      dataApi?.numero_commande ||
+      dataApi?.id ||
+      commande?.numero ||
+      'En attente';
 
+  const total =
+      dataApi?.total ??
+      commande?.total ??
+      0;
+
+  const articles =
+      commande?.articles ||
+      commande?.items ||
+      [];
+
+  // Afficher le récapitulatif
+  contenu.innerHTML = `
+    <div class="recapitulatif-commande">
+      <h3>Commande confirmée !</h3>
+
+      <p>
+        <strong>Numéro de commande :</strong>
+        ${echapperHTML(numeroCommande)}
+      </p>
+
+      <h4>Détail de la commande</h4>
+
+      ${
+      articles.length > 0
+          ? `
+            <ul class="liste-recapitulatif">
+              ${articles.map(article => {
+            const nom = article.nom || article.name || 'Article';
+            const quantite = Number(article.quantite ?? article.quantity ?? 1);
+            const prix = Number(article.prix ?? article.price ?? 0);
+
+            return `
+                  <li>
+                    <span>
+                      ${echapperHTML(nom)}
+                      × ${Number.isFinite(quantite) ? quantite : 1}
+                    </span>
+                    <span>
+                      ${(prix * (Number.isFinite(quantite) ? quantite : 1))
+                .toLocaleString('fr-FR')} FG
+                    </span>
+                  </li>
+                `;
+          }).join('')}
+            </ul>
+          `
+          : '<p>Le détail des articles n’est pas disponible.</p>'
+  }
+
+      <p class="total-recapitulatif">
+        <strong>Total :</strong>
+        ${Number(total).toLocaleString('fr-FR')} FG
+      </p>
+
+      <p>Merci d’avoir choisi LE BON REFUGE !</p>
+    </div>
+  `;
+
+  // Configurer le bouton PDF une seule fois
   if (btnPdf) {
-    if (dataApi.pdfUrl) {
-      btnPdf.href = dataApi.pdfUrl;
-      btnPdf.target = '_blank';
-      btnPdf.rel = 'noopener noreferrer';
+    btnPdf.onclick = null;
 
-      /*
-       * On demande au navigateur de télécharger le fichier
-       * lorsqu'il le peut.
-       */
-      btnPdf.setAttribute('download', '');
+    const pdfUrl = dataApi?.pdfUrl || dataApi?.pdf_url;
 
-      btnPdf.style.display = 'inline-flex';
-
-      console.log(
-          '📄 Ticket PDF disponible :',
-          dataApi.pdfUrl
-      );
+    if (pdfUrl) {
+      btnPdf.hidden = false;
+      btnPdf.style.display = '';
+      btnPdf.onclick = () => {
+        window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+      };
     } else {
-      btnPdf.style.display = 'none';
+      // Sans PDF fourni par le serveur, proposer l'impression
+      // afin que le client puisse choisir "Enregistrer au format PDF".
+      btnPdf.hidden = false;
+      btnPdf.style.display = '';
+      btnPdf.onclick = () => {
+        const zoneImpression = contenu.innerHTML;
+        const fenetre = window.open('', '_blank');
 
-      console.warn(
-          '⚠️ Aucun PDF retourné par le serveur.'
-      );
+        if (!fenetre) {
+          alert('Autorise les fenêtres pop-up pour télécharger le récapitulatif.');
+          return;
+        }
+
+        fenetre.document.write(`
+          <!DOCTYPE html>
+          <html lang="fr">
+          <head>
+            <meta charset="UTF-8">
+            <title>Commande LE BON REFUGE</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                max-width: 700px;
+                margin: 40px auto;
+                padding: 20px;
+                color: #222;
+              }
+              h3, h4 { margin-bottom: 12px; }
+              ul { padding: 0; list-style: none; }
+              li {
+                display: flex;
+                justify-content: space-between;
+                gap: 20px;
+                padding: 8px 0;
+                border-bottom: 1px solid #ddd;
+              }
+              .total-recapitulatif {
+                margin-top: 20px;
+                font-size: 18px;
+              }
+            </style>
+          </head>
+          <body>
+            ${zoneImpression}
+            <script>
+              window.onload = () => {
+                window.print();
+              };
+            <\/script>
+          </body>
+          </html>
+        `);
+
+        fenetre.document.close();
+      };
     }
   }
+
+  // Afficher la fenêtre de confirmation
+  modal.classList.add('active');
+  modal.setAttribute('aria-hidden', 'false');
 }
+
+/**
+ * Échappe les caractères HTML pour éviter d'injecter
+ * du contenu non fiable dans le récapitulatif.
+ */
+function echapperHTML(valeur) {
+  return String(valeur ?? '').replace(/[&<>"']/g, caractere => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[caractere]);
+}
+
 
 /* ==========================================================================
    6. GESTION DES MODALES
