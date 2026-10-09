@@ -198,8 +198,9 @@ if ($segments[0] === 'orders') {
         try {
             $pdfUrl = genererTicketPdf($pdo, $id);
 
-            $fichierPdf = __DIR__ . '/../uploads/tickets/' .
-                basename(parse_url($pdfUrl, PHP_URL_PATH));
+            $fichierPdf = __DIR__ . '/../uploads/tickets/ticket-' .
+                preg_replace('/[^a-zA-Z0-9_-]/', '-', $id) .
+                '.pdf';
 
             if (!file_exists($fichierPdf)) {
                 throw new Exception('Fichier PDF introuvable après génération.');
