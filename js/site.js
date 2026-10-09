@@ -752,3 +752,10 @@ function getMenuFallback() {
     { id: 45, nom: 'Supplément Garniture (Frites / Alloco)', categorie: 'Suppléments', prix: 5000, description: 'Portion supplémentaire.', populaire: false }
   ];
 }
+
+document.addEventListener('click', function(e) {
+  const bouton = e.target.closest('button, input[type="submit"]');
+  if (bouton) {
+    console.log('Clic détecté :', bouton.textContent.trim(), bouton);
+  }
+}, true);
