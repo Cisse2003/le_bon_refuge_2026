@@ -5,10 +5,11 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialisation de l'application
-  await chargerDonneesEtContact();
+
   initialiserPanier();
   initialiserFormulaires();
   initialiserModales();
+  chargerDonneesEtContact();
 });
 
 /* ==========================================================================
@@ -39,6 +40,12 @@ async function chargerDonneesEtContact() {
 
   } catch (err) {
     console.error('Erreur lors du chargement des données :', err);
+
+    // Afficher le menu de secours si le chargement échoue
+    MENU_DATA = getMenuFallback();
+    afficherMenu(MENU_DATA);
+    afficherPlatsPopulaires(MENU_DATA);
+    remplirParfumsGateau(MENU_DATA);
   }
 }
 
@@ -752,10 +759,3 @@ function getMenuFallback() {
     { id: 45, nom: 'Supplément Garniture (Frites / Alloco)', categorie: 'Suppléments', prix: 5000, description: 'Portion supplémentaire.', populaire: false }
   ];
 }
-
-document.addEventListener('click', function(e) {
-  const bouton = e.target.closest('button, input[type="submit"]');
-  if (bouton) {
-    console.log('Clic détecté :', bouton.textContent.trim(), bouton);
-  }
-}, true);
