@@ -16,6 +16,24 @@ $method = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'] ?? '';
 $path = parse_url($uri, PHP_URL_PATH);
 
+
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+set_exception_handler(function ($e) {
+    error_log('[API] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+    if (!headers_sent()) { http_response_code(500); header('Content-Type: application/json; charset=utf-8'); }
+    echo json_encode(['error' => 'Erreur serveur', 'detail' => $e->getMessage()]);
+    exit;
+});
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        error_log('[API FATAL] ' . $err['message'] . ' @ ' . $err['file'] . ':' . $err['line']);
+        if (!headers_sent()) { http_response_code(500); header('Content-Type: application/json; charset=utf-8'); }
+        echo json_encode(['error' => 'Erreur fatale', 'detail' => $err['message']]);
+    }
+});
+
 // Extraire le chemin après /api/
 if (preg_match('#/api(/.*)?$#', $path, $m)) {
     $route = $m[1] ?? '/';
@@ -84,6 +102,19 @@ if ($segments[0] === 'auth') {
         jsonResponse(['user' => currentUser()]);
     }
     jsonError('Route auth inconnue', 404);
+}
+
+// --- SETTINGS (infos de contact publiques) ---
+if ($segments[0] === 'settings') {
+    if ($method === 'GET' && ($segments[1] ?? '') === 'contact') {
+        jsonResponse([
+            'telephone' => '+224 629 631 082',
+            'whatsapp'  => 'https://wa.me/224629631082',
+            'tiktok'    => 'https://www.tiktok.com/@lebonrefuge',
+            'facebook'  => 'https://www.facebook.com/lebonrefuge',
+        ]);
+    }
+    jsonError('Route settings inconnue', 404);
 }
 
 // --- PRODUCTS ---
@@ -188,6 +219,10 @@ if ($segments[0] === 'orders') {
 
         $order = fetchOrderById($pdo, $id);
 
+        if ($order && !$order['envoiCuisine'] && empty($order['servedBy'])) {
+            appliquerStock($pdo, $order['items']); // commande venue du site, validée par le staff
+        }
+
         if (!$order) {
             http_response_code(404);
             header('Content-Type: text/plain; charset=utf-8');
@@ -250,70 +285,85 @@ if ($segments[0] === 'orders') {
         jsonResponse($order);
     }
     if ($method === 'POST' && !$id) {
-        $items = $input['items'] ?? [];
-        if (empty($items)) jsonError('Aucun article');
+        $user = currentUser(); // null = client anonyme (site public)
+        $rawItems = $input['items'] ?? [];
+        if (!is_array($rawItems) || empty($rawItems)) jsonError('Aucun article');
+
+        $type = $input['type'] ?? $input['typeService'] ?? 'a_emporter';
+        if (!in_array($type, ['sur_place', 'a_emporter', 'a_l_avance', 'livraison'], true)) jsonError('Type de commande invalide');
+        if (!$user && !in_array($type, ['a_emporter', 'a_l_avance'], true)) $type = 'a_emporter';
+
+        // Les prix viennent TOUJOURS de la base, jamais du navigateur
+        $stmtProd = $pdo->prepare('SELECT id, nom, prix, poste, disponible FROM products WHERE id = ?');
+        $items = [];
         $total = 0;
-        foreach ($items as &$it) {
-            $it['id'] = $it['id'] ?? uuid();
-            $it['prix'] = (int)($it['prix'] ?? 0);
-            $it['quantite'] = (int)($it['quantite'] ?? 1);
-            $total += $it['prix'] * $it['quantite'];
-            $it['poste'] = $it['poste'] ?? 'cuisine';
-            $it['statutItem'] = $it['statutItem'] ?? 'ATTENTE';
+        foreach ($rawItems as $it) {
+            $pid = $it['productId'] ?? $it['product_id'] ?? $it['id'] ?? '';
+            $qte = max(1, min(50, (int)($it['quantite'] ?? 1)));
+            $stmtProd->execute([$pid]);
+            $p = $stmtProd->fetch();
+            if ($p) {
+                if (!$p['disponible']) jsonError($p['nom'] . ' est indisponible');
+                $line = ['productId' => $p['id'], 'nom' => $p['nom'], 'prix' => (int)$p['prix'], 'poste' => $p['poste']];
+            } elseif (strpos((string)$pid, 'gateau-') === 0) {
+                // Gâteau sur mesure : prix indicatif, à confirmer par téléphone
+                $line = ['productId' => null, 'nom' => mb_substr((string)($it['nom'] ?? 'Gâteau'), 0, 150),
+                    'prix' => max(0, (int)($it['prix'] ?? 0)), 'poste' => 'patisserie'];
+            } else {
+                jsonError('Produit introuvable : ' . $pid);
+            }
+            $line['id'] = uuid();
+            $line['quantite'] = $qte;
+            $line['options'] = is_array($it['options'] ?? null) ? $it['options'] : [];
+            $line['personnalisation'] = $it['personnalisation'] ?? null;
+            $line['statutItem'] = 'ATTENTE';
+            $total += $line['prix'] * $qte;
+            $items[] = $line;
         }
-        unset($it);
+
+        $notes = trim((string)($input['notes'] ?? ''));
+        if (is_array($input['avance'] ?? null) && !empty($input['avance']['date'])) {
+            $notes = trim('Retrait prévu : ' . $input['avance']['date'] . ' ' . ($input['avance']['heure'] ?? '')
+                . ' (' . (int)($input['avance']['personnes'] ?? 1) . ' pers.) ' . $notes);
+        }
+
         $orderId = uuid();
         $numero = nextNumero($pdo);
-        $user = currentUser();
-        $stmt = $pdo->prepare('INSERT INTO orders (id, numero, type, statut, table_num, client_nom, client_tel, notes, total, envoi_cuisine, served_by_id, served_by_nom, date_creation) VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?)');
-        $stmt->execute([
-            $orderId, $numero,
-            $input['type'] ?? 'sur_place',
-            'NOUVELLE',
-            $input['table'] ?? $input['table_num'] ?? null,
-            $input['clientNom'] ?? $input['client_nom'] ?? null,
-            $input['clientTel'] ?? $input['client_tel'] ?? null,
-            $input['notes'] ?? null,
-            $total,
-            $user['id'] ?? null,
-            $user['nom'] ?? null,
-            now(),
-        ]);
-        insertOrderItems($pdo, $orderId, $items);
-        foreach ($items as $it) {
-            if (!empty($it['productId'])) {
-                $pdo->prepare('UPDATE stock SET quantite = GREATEST(0, quantite - ?) WHERE product_id = ?')
-                    ->execute([(int)$it['quantite'], $it['productId']]);
-            }
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('INSERT INTO orders (id, numero, type, statut, table_num, client_nom, client_tel, notes, total, envoi_cuisine, served_by_id, served_by_nom, date_creation) VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?)')
+                ->execute([
+                    $orderId, $numero, $type, 'NOUVELLE',
+                    $user ? ($input['table'] ?? $input['table_num'] ?? null) : null,
+                    mb_substr((string)($input['clientNom'] ?? $input['nomClient'] ?? $input['client_nom'] ?? ''), 0, 150) ?: null,
+                    mb_substr((string)($input['clientTel'] ?? $input['telClient'] ?? $input['client_tel'] ?? ''), 0, 50) ?: null,
+                    $notes ?: null, $total,
+                    $user['id'] ?? null, $user['nom'] ?? null, now(),
+                ]);
+            insertOrderItems($pdo, $orderId, $items);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
         }
-        deduireIngredients($pdo, $items);
+
+        // Commande saisie par le staff : stock déduit tout de suite.
+        // Commande du site : stock déduit seulement quand le staff l'envoie en cuisine (voir plus bas).
+        if ($user) appliquerStock($pdo, $items);
 
         logAction([
             'orderId'        => $orderId,
             'orderNumero'    => $numero,
-            'utilisateur'    => $user['username'] ?? 'Client',
+            'utilisateur'    => $user['username'] ?? 'client (site)',
             'role'           => $user['role'] ?? 'client',
             'action'         => 'CREATION_COMMANDE',
-            'nouvelleValeur' => "Total: $total FG"
+            'nouvelleValeur' => 'Total: ' . number_format($total, 0, ',', ' ') . ' FG'
         ]);
 
-        $order = fetchOrderById($pdo, $orderId);
-
-        $pdfUrl = null;
-
-        try {
-            $pdfUrl = genererTicketPdf($pdo, $orderId);
-        } catch (Throwable $e) {
-            error_log(
-                '[LE BON REFUGE] Erreur génération ticket PDF : ' .
-                $e->getMessage()
-            );
-        }
-
-        $order['numeroTicket'] = 'LR-' . $order['numero'];
-        $order['pdfUrl'] = $pdfUrl;
-
-        jsonResponse($order, 201);
+        $out = fetchOrderById($pdo, $orderId);
+        $out['numeroTicket'] = $numero;   // utilisé par le récapitulatif de site.js
+        $out['commandeId'] = $orderId;
+        jsonResponse($out, 201);
     }
     if ($method === 'PATCH' && $id && !$sub) {
         $user = requireAuth();
@@ -1241,6 +1291,15 @@ function mapIngredient(array $r): array {
         'seuilAlerte'   => (float)$r['seuil_alerte'],
         'photo'         => $r['photo'] ?? '',
     ];
+}
+
+function appliquerStock(PDO $pdo, array $items): void {
+    $stmt = $pdo->prepare('UPDATE stock SET quantite = GREATEST(0, CAST(quantite AS SIGNED) - ?) WHERE product_id = ?');
+    foreach ($items as $it) {
+        $pid = $it['productId'] ?? null;
+        if ($pid) $stmt->execute([(int)$it['quantite'], $pid]);
+    }
+    deduireIngredients($pdo, $items);
 }
 
 function mapReservation(array $r): array {
