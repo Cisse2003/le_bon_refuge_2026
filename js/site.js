@@ -178,7 +178,7 @@ const Panier = {
   items: [],
 
   ajouter(produit) {
-    const existant = this.items.find(i => String(i.id) === String(produit.id));
+    const existant = this.items.find(i => String(i.productId) === String(produit.id) && !i.personnalisation);
     if (existant) {
       existant.quantite += 1;
     } else {
@@ -428,10 +428,10 @@ function afficherRecapitulatif(commande, reponseApi) {
   const dataApi = reponseApi || {};
   const items = commande.items || [];
   const numero = dataApi.numeroTicket || dataApi.numero || dataApi.commandeId || 'EN-COURS';
+  const total = dataApi.total ?? commande.total ?? 0; // le total officiel vient du serveur
 
   const ticket = document.getElementById('ticketConfirmation');
   if (!ticket) {
-    // Filet de sécurité : le client sait quand même que la commande est partie
     alert('Commande #' + numero + ' enregistrée. Nous vous appelons pour confirmer.');
     return;
   }
@@ -447,13 +447,13 @@ function afficherRecapitulatif(commande, reponseApi) {
     <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">
       Statut : en attente de confirmation
     </p>
-    <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.typeService] || commande.typeService || ''}</span></div>
+    <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.type] || commande.type || ''}</span></div>
     ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${escapeHtml(commande.avance.date || '')} ${escapeHtml(commande.avance.heure || '')}</span></div>` : ''}
-    <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient || '')} (${escapeHtml(commande.telClient || '')})</span></div>
+    <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.clientNom || '')} (${escapeHtml(commande.clientTel || '')})</span></div>
     <div class="ticket-sep"></div>
     ${lignes}
     <div class="ticket-sep"></div>
-    <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal || 0)}</span></div>
+    <div class="ticket-total"><span>Total</span><span>${formatMontant(total)}</span></div>
   `;
 
   const btnPdf = document.getElementById('btnTelechargerPdf');
