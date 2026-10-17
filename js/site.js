@@ -423,156 +423,45 @@ function initialiserFormulaires() {
    ========================================================================== */
 
 
-function afficherRecapitulatif(dataApi, commande) {
-  const modal = document.getElementById('modalConfirmation');
-  const contenu = document.getElementById('contenuConfirmation');
-  const btnPdf = document.getElementById('btnTelechargerPdf');
+function afficherRecapitulatif(commande, reponseApi) {
+  const typeLabels = { a_emporter: 'À emporter', a_l_avance: "Commande à l'avance" };
+  const dataApi = reponseApi || {};
+  const items = commande.items || [];
+  const numero = dataApi.numeroTicket || dataApi.numero || dataApi.commandeId || 'EN-COURS';
 
-  if (!modal || !contenu) {
-    console.error('Modal de confirmation ou contenu introuvable.');
+  const ticket = document.getElementById('ticketConfirmation');
+  if (!ticket) {
+    // Filet de sécurité : le client sait quand même que la commande est partie
+    alert('Commande #' + numero + ' enregistrée. Nous vous appelons pour confirmer.');
     return;
   }
 
-  // Récupérer les informations de la commande
-  const numeroCommande =
-      dataApi?.numero ||
-      dataApi?.numero_commande ||
-      dataApi?.id ||
-      commande?.numero ||
-      'En attente';
+  const lignes = items.map((it) => `
+    <div class="ticket-row">
+      <span>${it.quantite}× ${escapeHtml(it.nom)}</span>
+      <span>${formatMontant(it.prix * it.quantite)}</span>
+    </div>`).join('');
 
-  const total =
-      dataApi?.total ??
-      commande?.total ??
-      0;
-
-  const articles =
-      commande?.articles ||
-      commande?.items ||
-      [];
-
-  // Afficher le récapitulatif
-  contenu.innerHTML = `
-    <div class="recapitulatif-commande">
-      <h3>Commande confirmée !</h3>
-
-      <p>
-        <strong>Numéro de commande :</strong>
-        ${echapperHTML(numeroCommande)}
-      </p>
-
-      <h4>Détail de la commande</h4>
-
-      ${
-      articles.length > 0
-          ? `
-            <ul class="liste-recapitulatif">
-              ${articles.map(article => {
-            const nom = article.nom || article.name || 'Article';
-            const quantite = Number(article.quantite ?? article.quantity ?? 1);
-            const prix = Number(article.prix ?? article.price ?? 0);
-
-            return `
-                  <li>
-                    <span>
-                      ${echapperHTML(nom)}
-                      × ${Number.isFinite(quantite) ? quantite : 1}
-                    </span>
-                    <span>
-                      ${(prix * (Number.isFinite(quantite) ? quantite : 1))
-                .toLocaleString('fr-FR')} FG
-                    </span>
-                  </li>
-                `;
-          }).join('')}
-            </ul>
-          `
-          : '<p>Le détail des articles n’est pas disponible.</p>'
-  }
-
-      <p class="total-recapitulatif">
-        <strong>Total :</strong>
-        ${Number(total).toLocaleString('fr-FR')} FG
-      </p>
-
-      <p>Merci d’avoir choisi LE BON REFUGE !</p>
-    </div>
+  ticket.innerHTML = `
+    <h4>Ticket #${escapeHtml(String(numero))}</h4>
+    <p style="text-align:center; font-size:0.85rem; margin-bottom:0.5rem; color:#8a8168;">
+      Statut : en attente de confirmation
+    </p>
+    <div class="ticket-row"><span>Type</span><span>${typeLabels[commande.typeService] || commande.typeService || ''}</span></div>
+    ${commande.avance ? `<div class="ticket-row"><span>Retrait</span><span>${escapeHtml(commande.avance.date || '')} ${escapeHtml(commande.avance.heure || '')}</span></div>` : ''}
+    <div class="ticket-row"><span>Client</span><span>${escapeHtml(commande.nomClient || '')} (${escapeHtml(commande.telClient || '')})</span></div>
+    <div class="ticket-sep"></div>
+    ${lignes}
+    <div class="ticket-sep"></div>
+    <div class="ticket-total"><span>Total</span><span>${formatMontant(commande.montantTotal || 0)}</span></div>
   `;
 
-  // Configurer le bouton PDF une seule fois
+  const btnPdf = document.getElementById('btnTelechargerPdf');
   if (btnPdf) {
-    btnPdf.onclick = null;
-
-    const pdfUrl = dataApi?.pdfUrl || dataApi?.pdf_url;
-
-    if (pdfUrl) {
-      btnPdf.hidden = false;
-      btnPdf.style.display = '';
-      btnPdf.onclick = () => {
-        window.open(pdfUrl, '_blank', 'noopener,noreferrer');
-      };
-    } else {
-      // Sans PDF fourni par le serveur, proposer l'impression
-      // afin que le client puisse choisir "Enregistrer au format PDF".
-      btnPdf.hidden = false;
-      btnPdf.style.display = '';
-      btnPdf.onclick = () => {
-        const zoneImpression = contenu.innerHTML;
-        const fenetre = window.open('', '_blank');
-
-        if (!fenetre) {
-          alert('Autorise les fenêtres pop-up pour télécharger le récapitulatif.');
-          return;
-        }
-
-        fenetre.document.write(`
-          <!DOCTYPE html>
-          <html lang="fr">
-          <head>
-            <meta charset="UTF-8">
-            <title>Commande LE BON REFUGE</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                max-width: 700px;
-                margin: 40px auto;
-                padding: 20px;
-                color: #222;
-              }
-              h3, h4 { margin-bottom: 12px; }
-              ul { padding: 0; list-style: none; }
-              li {
-                display: flex;
-                justify-content: space-between;
-                gap: 20px;
-                padding: 8px 0;
-                border-bottom: 1px solid #ddd;
-              }
-              .total-recapitulatif {
-                margin-top: 20px;
-                font-size: 18px;
-              }
-            </style>
-          </head>
-          <body>
-            ${zoneImpression}
-            <script>
-              window.onload = () => {
-                window.print();
-              };
-            <\/script>
-          </body>
-          </html>
-        `);
-
-        fenetre.document.close();
-      };
-    }
+    const ok = dataApi.pdfUrl && dataApi.pdfUrl !== '#';
+    if (ok) btnPdf.href = dataApi.pdfUrl;
+    btnPdf.style.display = ok ? 'inline-flex' : 'none';
   }
-
-  // Afficher la fenêtre de confirmation
-  modal.classList.add('active');
-  modal.setAttribute('aria-hidden', 'false');
 }
 
 /**
