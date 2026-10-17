@@ -198,22 +198,31 @@ function afficherCommandesEnAttente(liste) {
 
 async function validerCommande(commandeId) {
   try {
-    await apiPost(`/api/orders/${commandeId}/validate`, { statut: 'en_cours' });
-    toast('Commande validée et transmise en cuisine !', 'success');
-    chargerCommandesEnCours();
+    await apiPost(`/api/orders/${commandeId}/envoyer-cuisine`);
+
+    toast('Commande envoyée en cuisine !', 'success');
+    await chargerCommandesEnCours();
+
   } catch (err) {
+    console.error('Erreur validation commande :', err);
     toast(err.message || 'Erreur lors de la validation', 'error');
   }
 }
 
 async function annulerCommande(commandeId) {
   if (!confirm('Voulez-vous vraiment annuler cette commande ?')) return;
+
   try {
-    await apiPost(`/api/orders/${commandeId}/cancel`, { statut: 'annulee' });
+    await apiPatch(`/api/orders/${commandeId}/statut`, {
+      statut: 'ANNULEE'
+    });
+
     toast('Commande annulée', 'info');
-    chargerCommandesEnCours();
+    await chargerCommandesEnCours();
+
   } catch (err) {
-    toast(err.message || 'Erreur lors de l\'annulation', 'error');
+    console.error('Erreur annulation commande :', err);
+    toast(err.message || "Erreur lors de l'annulation", 'error');
   }
 }
 
