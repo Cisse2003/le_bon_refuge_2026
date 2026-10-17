@@ -5,7 +5,8 @@
  */
 
 require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../vendor/autoload.php';
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (is_file($autoload)) { require_once $autoload; }
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -217,10 +218,11 @@ if ($segments[0] === 'orders') {
 // ============================================================
     if ($method === 'GET' && $id && $sub === 'pdf') {
 
+        $user = requireAuth();
         $order = fetchOrderById($pdo, $id);
-
-        if ($order && !$order['envoiCuisine'] && empty($order['servedBy'])) {
-            appliquerStock($pdo, $order['items']); // commande venue du site, validée par le staff
+        if (!$order) jsonError('Commande introuvable', 404);
+        if (!$order['envoiCuisine'] && empty($order['servedBy'])) {
+            appliquerStock($pdo, $order['items']);   // commande du site, validée par le staff
         }
 
         if (!$order) {
@@ -363,6 +365,7 @@ if ($segments[0] === 'orders') {
         $out = fetchOrderById($pdo, $orderId);
         $out['numeroTicket'] = $numero;   // utilisé par le récapitulatif de site.js
         $out['commandeId'] = $orderId;
+        $out['pdfUrl'] = '/api/orders/' . rawurlencode($orderId) . '/pdf';
         jsonResponse($out, 201);
     }
     if ($method === 'PATCH' && $id && !$sub) {
@@ -928,6 +931,10 @@ jsonError('Route introuvable: ' . $route, 404);
 
 function genererTicketPdf(PDO $pdo, string $orderId): string
 {
+    if (!class_exists(Dompdf::class)) {
+        throw new Exception('Dompdf non installé : dossier vendor absent sur le serveur.');
+    }
+
     $order = fetchOrderById($pdo, $orderId);
 
     if (!$order) {

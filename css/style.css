@@ -15,6 +15,7 @@
   --accent-dark: #c4801f;
   --brown: #9a6a42;
   --text: #f6efe1;
+  --paper-muted: #c9c2ac;
   --text-dim: #c9c2ac;
   --text-dark: #201a12;
   --danger: #d0564a;
@@ -589,3 +590,6 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
   opacity: 1;
   pointer-events: auto;
 }
+
+.modal-overlay.active { display: flex; }
+.overlay.active { opacity: 1; pointer-events: auto; }
