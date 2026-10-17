@@ -138,3 +138,22 @@ const API = {
     return await apiPost('/api/reservations', payload);
   }
 };
+
+
+/**
+ * Échappe les caractères spéciaux HTML pour éviter
+ * l'injection de HTML ou de JavaScript dans les affichages.
+ */
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, function (char) {
+    const entities = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+
+    return entities[char];
+  });
+}
