@@ -218,7 +218,6 @@ if ($segments[0] === 'orders') {
 // ============================================================
     if ($method === 'GET' && $id && $sub === 'pdf') {
 
-        $user = requireAuth();
         $order = fetchOrderById($pdo, $id);
         if (!$order) jsonError('Commande introuvable', 404);
         if (!$order['envoiCuisine'] && empty($order['servedBy'])) {
