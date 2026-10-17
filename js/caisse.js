@@ -123,19 +123,38 @@ async function envoyerEnCuisine() {
 
 // --- À inclure dans js/caisse.js ---
 
+
 async function chargerCommandesEnCours() {
   try {
-    const commandes = await apiGet('/api/orders/pending'); // Récupère toutes les commandes non archivées
+    // L'API PHP existante expose GET /api/orders
+    const commandes = await apiGet('/api/orders');
 
-    const enAttente = commandes.filter(c => c.statut === 'en_attente');
-    const enCuisine = commandes.filter(c => c.statut !== 'en_attente' && c.statut !== 'annulee' && c.statut !== 'terminee');
+    if (!Array.isArray(commandes)) {
+      throw new Error("L'API n'a pas renvoyé une liste de commandes.");
+    }
+
+    // Les statuts de l'API PHP sont en majuscules.
+    // Les commandes du site ne sont pas encore envoyées en cuisine.
+    const enAttente = commandes.filter(c =>
+        !c.envoiCuisine &&
+        ['NOUVELLE', 'CONFIRMEE'].includes(c.statut) &&
+        !c.servedBy
+    );
+
+    // Commandes déjà envoyées en cuisine et pas encore terminées.
+    const enCuisine = commandes.filter(c =>
+        c.envoiCuisine &&
+        !['TERMINEE', 'ANNULEE'].includes(c.statut)
+    );
 
     afficherCommandesEnAttente(enAttente);
     afficherCommandesEnCuisine(enCuisine);
+
   } catch (err) {
-    console.error("Erreur chargement commandes:", err);
+    console.error("Erreur chargement commandes :", err);
   }
 }
+
 
 function afficherCommandesEnAttente(liste) {
   const container = document.getElementById('listeCommandesEnAttente');
