@@ -758,6 +758,16 @@ if ($segments[0] === 'dashboard') {
         $top = $pdo->query("SELECT oi.nom, SUM(oi.quantite) as qty FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.statut != 'ANNULEE' AND DATE(o.date_creation) >= '$monthStart' GROUP BY oi.nom ORDER BY qty DESC LIMIT 10")->fetchAll();
         $topProduits = array_map(fn($r) => ['nom' => $r['nom'], 'quantite' => (int)$r['qty']], $top);
 
+        $cat = $pdo->query("SELECT COALESCE(p.categorie, 'Autre') AS categorie, SUM(oi.prix * oi.quantite) AS total
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            LEFT JOIN products p ON p.id = oi.product_id
+            WHERE o.statut != 'ANNULEE' AND DATE(o.date_creation) >= '$monthStart'
+            GROUP BY COALESCE(p.categorie, 'Autre')
+            ORDER BY total DESC")->fetchAll();
+        $ventesCategorie = array_map(fn($r) => ['categorie' => $r['categorie'], 'total' => (int)$r['total']], $cat);
+        $enCours = (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE statut NOT IN ('TERMINEE','ANNULEE')")->fetchColumn();
+
         jsonResponse([
             'caJour'           => $caJour,
             'caSemaine'        => $caSemaine,
@@ -765,6 +775,8 @@ if ($segments[0] === 'dashboard') {
             'nbCommandesJour'  => $nbJour,
             'panierMoyen'      => $panierMoyen,
             'topProduits'      => $topProduits,
+            'ventesCategorie'  => $ventesCategorie,
+            'commandesEnCours' => $enCours,
         ]);
     }
     if ($method === 'GET' && $action === 'logs') {
@@ -842,6 +854,7 @@ if ($segments[0] === 'upload' && $method === 'POST') {
 // --- SUPERVISION ---
 if ($segments[0] === 'supervision') {
     requireRole('superviseur', 'admin');
+    $estSuperviseur = (currentUser()['role'] ?? '') === 'superviseur';
     $action = $segments[1] ?? '';
 
     if ($method === 'GET' && $action === 'logs') {

@@ -2,6 +2,8 @@ let USER = null;
 let PRODUITS_CACHE = [];
 let INGREDIENTS_CACHE = [];
 
+const dateISO = (s) => String(s || '').replace(' ', 'T'); // dates MySQL compatibles Safari
+
 async function init() {
   USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'superviseur']);
   if (!USER) return;
@@ -39,35 +41,15 @@ async function init() {
 
   document.getElementById('filtreStatutCommande').addEventListener('change', chargerCommandes);
 
-  const socket = connectSocket();
-  if (socket) {
-    ['commande_creee', 'commande_statut', 'commande_modifiee', 'commande_supprimee'].forEach((evt) => {
-      socket.on(evt, () => {
-        if (document.getElementById('panel-commandes').classList.contains('active')) chargerCommandes();
-        if (document.getElementById('panel-dashboard').classList.contains('active')) chargerDashboard();
-      });
-    });
-    socket.on('reservation_creee', () => {
-      if (document.getElementById('panel-reservations').classList.contains('active')) chargerReservations();
-    });
-    socket.on('stock_ingredients_maj', () => {
-      if (document.getElementById('panel-ingredients').classList.contains('active')) chargerIngredients();
-    });
-  }
-  // Filet de sécurité : rafraîchit le panneau actif toutes les 20s même sans WebSocket,
-  // au cas où l'hébergeur ne relaierait pas correctement les connexions temps réel.
-  setInterval(() => {
+  surveillerChangements(() => {
     const chargeurs = {
       dashboard: chargerDashboard, produits: chargerProduits, stock: chargerStock,
       ingredients: chargerIngredients, commandes: chargerCommandes,
       reservations: chargerReservations, historique: chargerHistorique,
     };
     const actif = document.querySelector('.panel.active');
-    if (actif) {
-      const nom = actif.id.replace('panel-', '');
-      if (chargeurs[nom]) chargeurs[nom]();
-    }
-  }, 20000);
+    if (actif && chargeurs[actif.id.replace('panel-', '')]) chargeurs[actif.id.replace('panel-', '')]();
+  });
 }
 
 function ouvrirPanel(nom) {
@@ -91,10 +73,12 @@ async function chargerDashboard() {
     <div class="card stat-card"><div class="num">${formatMontant(s.caMois)}</div><div class="label">CA du mois</div></div>
     <div class="card stat-card"><div class="num">${s.nbCommandesJour}</div><div class="label">Commandes du jour</div></div>
     <div class="card stat-card"><div class="num">${formatMontant(s.panierMoyen)}</div><div class="label">Panier moyen</div></div>
-    <div class="card stat-card"><div class="num">${s.commandesEnCours}</div><div class="label">Commandes en cours</div></div>
+    <div class="card stat-card"><div class="num">${s.commandesEnCours ?? 0}</div><div class="label">Commandes en cours</div></div>
   `;
-  document.getElementById('tblTopProduits').innerHTML = s.topProduits.map((p) => `<tr><td>${p.nom}</td><td>${p.quantite}</td></tr>`).join('') || '<tr><td colspan="2">Pas encore de données</td></tr>';
-  document.getElementById('tblVentesCategorie').innerHTML = s.ventesCategorie.map((c) => `<tr><td>${c.categorie}</td><td>${formatMontant(c.total)}</td></tr>`).join('') || '<tr><td colspan="2">Pas encore de données</td></tr>';
+  const top = s.topProduits || [];
+  const cats = s.ventesCategorie || [];
+  document.getElementById('tblTopProduits').innerHTML = top.map((p) => `<tr><td>${escapeHtml(p.nom)}</td><td>${p.quantite}</td></tr>`).join('') || '<tr><td colspan="2">Pas encore de données</td></tr>';
+  document.getElementById('tblVentesCategorie').innerHTML = cats.map((c) => `<tr><td>${escapeHtml(c.categorie)}</td><td>${formatMontant(c.total)}</td></tr>`).join('') || '<tr><td colspan="2">Pas encore de données</td></tr>';
 }
 
 // ---------------- PRODUITS ----------------
@@ -320,14 +304,14 @@ async function enregistrerIngredient(e) {
 async function chargerCommandes() {
   const statut = document.getElementById('filtreStatutCommande').value;
   const orders = await apiGet('/api/orders' + (statut ? `?statut=${statut}` : ''));
-  const badgeClasses = { NOUVELLE: 'badge--wait', EN_PREPARATION: 'badge--wait', PRETE: 'badge--ok', TERMINEE: 'badge--ok', ANNULEE: 'badge--out' };
+  const badgeClasses = { NOUVELLE: 'badge--wait', EN_PREPARATION: 'badge--wait', PRETE: 'badge--ok', TERMINEE: 'badge--ok', ANNULEE: 'badge--out', CONFIRMEE: 'badge--wait' };
   document.getElementById('tblCommandes').innerHTML = orders.map((o) => `
     <tr>
       <td>#${o.numero}</td><td>${o.type}</td>
-      <td>${o.table ? 'Table ' + o.table : (o.client ? o.client.nom : '-')}</td>
-      <td>${formatMontant(o.montantTotal)}</td>
+      <td>${o.table ? 'Table ' + escapeHtml(o.table) : escapeHtml(o.clientNom || '-')}</td>
+      <td>${formatMontant(o.total)}</td>
       <td><span class="badge ${badgeClasses[o.statut] || ''}">${o.statut}</span></td>
-      <td>${formatHeure(o.dateCreation)}</td>
+      <td>${formatHeure(dateISO(o.dateCreation))}</td>
       <td>
         <button class="btn btn--sm btn--ghost" data-voir="${o.id}">Voir</button>
         ${!o.envoiCuisine ? `<button class="btn btn--sm" data-envoyer="${o.id}">Envoyer en cuisine</button>` : ''}
@@ -351,12 +335,12 @@ async function chargerCommandes() {
 function voirCommande(o) {
   document.getElementById('detailCommandeContenu').innerHTML = `
     <h3 style="font-family:var(--font-body); color:var(--paper);">Commande #${o.numero}</h3>
-    <p style="color:var(--text-dim);">${o.type} · ${o.table ? 'Table ' + o.table : ''} · ${new Date(o.dateCreation).toLocaleString('fr-FR')}</p>
+    <p style="color:var(--text-dim);">${o.type} · ${o.table ? 'Table ' + o.table : ''} · ${new Date(dateISO(o.dateCreation)).toLocaleString('fr-FR')}</p>
     <table><thead><tr><th>Article</th><th>Qté</th><th>Prix</th></tr></thead><tbody>
       ${o.items.map((it) => `<tr><td>${it.nom}${it.options.length ? ' <small>(' + it.options.join(', ') + ')</small>' : ''}</td><td>${it.quantite}</td><td>${formatMontant(it.prix * it.quantite)}</td></tr>`).join('')}
     </tbody></table>
-    <p style="text-align:right; font-weight:700; color:var(--paper); margin-top:0.6rem;">Total : ${formatMontant(o.montantTotal)}</p>
-    ${o.notesGenerales ? `<p><strong>Note :</strong> ${o.notesGenerales}</p>` : ''}
+    <p style="text-align:right; font-weight:700; color:var(--paper); margin-top:0.6rem;">Total : ${formatMontant(o.total)}</p>
+    ${o.notesGenerales ? `<p><strong>Note :</strong> ${o.notes}</p>` : ''}
   `;
   document.getElementById('modalCommandeDetail').classList.add('open');
 }
