@@ -220,9 +220,9 @@ if ($segments[0] === 'orders') {
 
         $order = fetchOrderById($pdo, $id);
         if (!$order) jsonError('Commande introuvable', 404);
-        if (!$order['envoiCuisine'] && empty($order['servedBy'])) {
+/*        if (!$order['envoiCuisine'] && empty($order['servedBy'])) {
             appliquerStock($pdo, $order['items']);   // commande du site, validée par le staff
-        }
+        }  */
 
         if (!$order) {
             http_response_code(404);
@@ -407,6 +407,14 @@ if ($segments[0] === 'orders') {
     if ($method === 'POST' && $id && $sub === 'envoyer-cuisine') {
         $user = requireAuth();
         $order = fetchOrderById($pdo, $id);
+        if (!$order) jsonError('Commande introuvable', 404);
+
+        // Commande du site : le stock n'a pas encore été déduit, on le fait à la validation.
+        // (Les commandes saisies en caisse ont déjà été déduites à leur création.)
+        if (!$order['envoiCuisine'] && empty($order['servedBy'])) {
+            appliquerStock($pdo, $order['items']);
+        }
+
         $pdo->prepare('UPDATE orders SET envoi_cuisine = 1, date_envoi_cuisine = ?, statut = IF(statut = "NOUVELLE", "CONFIRMEE", statut), date_modif = ? WHERE id = ?')
             ->execute([now(), now(), $id]);
 

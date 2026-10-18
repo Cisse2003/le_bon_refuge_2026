@@ -31,7 +31,7 @@ async function init() {
     socket.on('commande_modifiee', charger);
     socket.on('commande_supprimee', charger);
   }
-  setInterval(charger, 15000); // filet de sécurité si un événement socket est manqué
+  setInterval(charger, 5000); // filet de sécurité si un événement socket est manqué
 }
 
 function itemsPourPoste(order) {
@@ -39,55 +39,7 @@ function itemsPourPoste(order) {
   return order.items.filter((it) => it.poste === posteActif);
 }
 
-async function charger() {
-  const orders = await apiGet('/api/orders');
-  const pertinentes = orders.filter((o) => o.envoiCuisine && itemsPourPoste(o).length > 0);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const parStatut = { NOUVELLE: [], EN_PREPARATION: [], PRETE: [], TERMINEE: [] };
-  pertinentes.forEach((o) => {
-    if (o.statut === 'TERMINEE') {
-      if (o.dateCreation.slice(0, 10) === today) parStatut.TERMINEE.push(o);
-    } else if (parStatut[o.statut]) {
-      parStatut[o.statut].push(o);
-    }
-  });
-
-  document.getElementById('colNouvelle').innerHTML = rendreColonne(parStatut.NOUVELLE, true);
-  document.getElementById('colEnPreparation').innerHTML = rendreColonne(parStatut.EN_PREPARATION, false);
-  document.getElementById('colPrete').innerHTML = rendreColonne(parStatut.PRETE, false);
-  document.getElementById('colTerminee').innerHTML = rendreColonne(parStatut.TERMINEE.slice(0, 8), false, true);
-
-  attacherEvenements();
-}
-
-function rendreColonne(orders, urgent, lectureSeule) {
-  if (orders.length === 0) return '<div class="empty-state" style="padding:1rem 0;">-</div>';
-  return orders.map((o) => `
-    <div class="card kds-card ${urgent ? 'urgent' : ''}">
-      <h4><span>#${o.numero}</span><span>${formatHeure(o.dateCreation)}</span></h4>
-      <div class="tag-poste">${o.table ? 'Table ' + o.table : (o.type === 'a_emporter' ? 'À emporter' : o.type)}</div>
-      ${o.client ? `<div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.3rem;">${o.client.nom}</div>` : ''}
-      <div style="margin-top:0.6rem;">
-        ${itemsPourPoste(o).map((it) => `
-          <div class="kds-item-row ${it.statutItem === 'PRETE' ? 'done' : ''}">
-            <label style="display:flex; gap:0.4em; align-items:center; cursor:${lectureSeule ? 'default' : 'pointer'};">
-              <input type="checkbox" ${it.statutItem === 'PRETE' ? 'checked' : ''} ${lectureSeule ? 'disabled' : ''}
-                data-order="${o.id}" data-item="${it.id}" data-cur="${it.statutItem}">
-              ${it.quantite}× ${it.nom} ${it.options && it.options.length ? '<em>(' + it.options.join(', ') + ')</em>' : ''}
-              ${it.personnalisation ? `<em>- ${it.personnalisation.taille}, ${it.personnalisation.parfum}${it.personnalisation.texte ? ', "' + it.personnalisation.texte + '"' : ''}</em>` : ''}
-            </label>
-          </div>
-        `).join('')}
-      </div>
-      ${o.notesGenerales ? `<div style="margin-top:0.5rem; font-size:0.82rem; color:var(--accent);">📝 ${o.notesGenerales}</div>` : ''}
-      ${!lectureSeule ? `
-      <div style="margin-top:0.8rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
-        <button class="btn btn--sm btn--ghost" data-annuler="${o.id}">Annuler</button>
-      </div>` : ''}
-    </div>
-  `).join('');
-}
 
 function attacherEvenements() {
   document.querySelectorAll('input[type=checkbox][data-item]').forEach((chk) => {
@@ -110,4 +62,101 @@ function attacherEvenements() {
   });
 }
 
+
+const commandesConnues = new Set();
+let premierChargement = true;
+
+// L'API passe la commande en CONFIRMEE à l'envoi en cuisine : pour le cuisinier, c'est une "Nouvelle"
+function statutAffiche(o) {
+  return o.statut === 'CONFIRMEE' ? 'NOUVELLE' : o.statut;
+}
+
+function dateISO(s) {
+  return String(s || '').replace(' ', 'T'); // compatible Safari
+}
+
+function detailPerso(p) {
+  if (!p) return '';
+  const parts = [p.taille, p.parfum];
+  if (p.decoration) parts.push('déco : ' + p.decoration);
+  if (p.texte) parts.push('texte : « ' + p.texte + ' »');
+  if (p.date) parts.push('retrait ' + p.date + ' ' + (p.heure || ''));
+  return ' <em>- ' + escapeHtml(parts.filter(Boolean).join(', ')) + '</em>';
+}
+
+async function charger() {
+  let orders;
+  try {
+    orders = await apiGet('/api/orders');
+  } catch (err) {
+    console.error('Erreur chargement cuisine :', err);
+    return;
+  }
+  if (!Array.isArray(orders)) return;
+
+  // Bip pour chaque commande envoyée en cuisine apparue depuis le dernier rafraîchissement
+  let nouvelle = false;
+  orders.filter((o) => o.envoiCuisine).forEach((o) => {
+    if (!commandesConnues.has(o.id)) {
+      commandesConnues.add(o.id);
+      if (!premierChargement && statutAffiche(o) === 'NOUVELLE') nouvelle = true;
+    }
+  });
+  premierChargement = false;
+  if (nouvelle) biper();
+
+  const pertinentes = orders.filter((o) => o.envoiCuisine && itemsPourPoste(o).length > 0);
+
+  const auj = new Date().toLocaleDateString('fr-CA'); // AAAA-MM-JJ, heure locale
+  const parStatut = { NOUVELLE: [], EN_PREPARATION: [], PRETE: [], TERMINEE: [] };
+  pertinentes.forEach((o) => {
+    const st = statutAffiche(o);
+    if (st === 'TERMINEE') {
+      if (String(o.dateCreation).slice(0, 10) === auj) parStatut.TERMINEE.push(o);
+    } else if (parStatut[st]) {
+      parStatut[st].push(o);
+    }
+  });
+
+  document.getElementById('colNouvelle').innerHTML = rendreColonne(parStatut.NOUVELLE, true);
+  document.getElementById('colEnPreparation').innerHTML = rendreColonne(parStatut.EN_PREPARATION, false);
+  document.getElementById('colPrete').innerHTML = rendreColonne(parStatut.PRETE, false);
+  document.getElementById('colTerminee').innerHTML = rendreColonne(parStatut.TERMINEE.slice(0, 8), false, true);
+
+  attacherEvenements();
+}
+
+function rendreColonne(orders, urgent, lectureSeule) {
+  if (orders.length === 0) return '<div class="empty-state" style="padding:1rem 0;">-</div>';
+  return orders.map((o) => {
+    const lieu = o.table ? 'Table ' + escapeHtml(o.table)
+        : o.type === 'a_emporter' ? 'À emporter'
+            : o.type === 'a_l_avance' ? "À l'avance"
+                : escapeHtml(o.type);
+    return `
+    <div class="card kds-card ${urgent ? 'urgent' : ''}">
+      <h4><span>#${escapeHtml(o.numero)}</span><span>${formatHeure(dateISO(o.dateCreation))}</span></h4>
+      <div class="tag-poste">${lieu}</div>
+      ${o.clientNom ? `<div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.3rem;">${escapeHtml(o.clientNom)}</div>` : ''}
+      <div style="margin-top:0.6rem;">
+        ${itemsPourPoste(o).map((it) => `
+          <div class="kds-item-row ${it.statutItem === 'PRETE' ? 'done' : ''}">
+            <label style="display:flex; gap:0.4em; align-items:center; cursor:${lectureSeule ? 'default' : 'pointer'};">
+              <input type="checkbox" ${it.statutItem === 'PRETE' ? 'checked' : ''} ${lectureSeule ? 'disabled' : ''}
+                data-order="${o.id}" data-item="${it.id}">
+              <span>${it.quantite}× ${escapeHtml(it.nom)}
+              ${it.options && it.options.length ? '<em>(' + escapeHtml(it.options.join(', ')) + ')</em>' : ''}
+              ${detailPerso(it.personnalisation)}</span>
+            </label>
+          </div>
+        `).join('')}
+      </div>
+      ${o.notes ? `<div style="margin-top:0.5rem; font-size:0.82rem; color:var(--accent);">📝 ${escapeHtml(o.notes)}</div>` : ''}
+      ${!lectureSeule ? `
+      <div style="margin-top:0.8rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
+        <button class="btn btn--sm btn--ghost" data-annuler="${o.id}">Annuler</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
 init();
