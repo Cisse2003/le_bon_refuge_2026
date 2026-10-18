@@ -121,76 +121,118 @@ async function envoyerEnCuisine() {
   }
 }
 
-// --- À inclure dans js/caisse.js ---
+function escapeHtml(str) {
+  return String(str ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
 
+const statutsConnus = {}; // pour détecter le passage à "Prête" entre deux rafraîchissements
+
+function libelleType(c) {
+  if (c.table) return 'Table ' + escapeHtml(c.table);
+  if (c.type === 'a_emporter') return 'À emporter';
+  if (c.type === 'a_l_avance') return "À l'avance";
+  return escapeHtml(c.type || '');
+}
 
 async function chargerCommandesEnCours() {
   try {
-    // L'API PHP existante expose GET /api/orders
     const commandes = await apiGet('/api/orders');
-
     if (!Array.isArray(commandes)) {
       throw new Error("L'API n'a pas renvoyé une liste de commandes.");
     }
 
-    // Les statuts de l'API PHP sont en majuscules.
-    // Les commandes du site ne sont pas encore envoyées en cuisine.
+    // Commandes du site, pas encore validées par le staff
     const enAttente = commandes.filter(c =>
-        !c.envoiCuisine &&
-        ['NOUVELLE', 'CONFIRMEE'].includes(c.statut) &&
-        !c.servedBy
+        !c.envoiCuisine && !c.servedBy &&
+        ['NOUVELLE', 'CONFIRMEE'].includes(c.statut)
     );
 
-    // Commandes déjà envoyées en cuisine et pas encore terminées.
+    // Commandes envoyées en cuisine et pas encore terminées
     const enCuisine = commandes.filter(c =>
-        c.envoiCuisine &&
-        !['TERMINEE', 'ANNULEE'].includes(c.statut)
+        c.envoiCuisine && !['TERMINEE', 'ANNULEE'].includes(c.statut)
     );
 
     afficherCommandesEnAttente(enAttente);
     afficherCommandesEnCuisine(enCuisine);
-
   } catch (err) {
-    console.error("Erreur chargement commandes :", err);
+    console.error('Erreur chargement commandes :', err);
   }
 }
 
-
 function afficherCommandesEnAttente(liste) {
   const container = document.getElementById('listeCommandesEnAttente');
-  if (!container) return;
+  if (!container) {
+    console.warn('Conteneur #listeCommandesEnAttente absent de caisse.html');
+    return;
+  }
 
   if (liste.length === 0) {
-    container.innerHTML = '<div class="empty-state" style="color:#8a8168;">Aucune commande Web en attente</div>';
+    container.innerHTML = '<div class="empty-state" style="color:#8a8168;">Aucune commande du site en attente</div>';
     return;
   }
 
   container.innerHTML = liste.map(c => `
-    <div class="card" style="margin-bottom: 0.8rem; border-left: 4px solid #e67e22;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <strong>#${escapeHtml(c.numero || c.id)} — ${escapeHtml(c.nomClient)}</strong>
-        <span class="badge" style="background:#e67e22; color:#fff;">En attente</span>
+    <div class="card" style="margin-bottom:0.8rem; border-left:4px solid var(--accent);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+        <strong>#${escapeHtml(c.numero)} — ${escapeHtml(c.clientNom || 'Client')}</strong>
+        <span class="badge badge--wait">En attente</span>
       </div>
-      <p style="margin: 0.4rem 0; font-size: 0.9rem;">
-        📞 <a href="tel:${escapeHtml(c.telClient)}" style="color:var(--primary); font-weight:bold;">${escapeHtml(c.telClient)}</a><br>
-        <em>${c.typeService === 'a_emporter' ? 'À emporter' : 'À l\'avance'}</em>
+      <p style="margin:0.4rem 0; font-size:0.9rem;">
+        📞 <a href="tel:${escapeHtml(c.clientTel || '')}" style="color:var(--accent); font-weight:bold;">${escapeHtml(c.clientTel || '—')}</a><br>
+        <em>${libelleType(c)}</em>
       </p>
-      
+      ${c.notes ? `<p style="margin:0.2rem 0; font-size:0.82rem; color:var(--accent);">📝 ${escapeHtml(c.notes)}</p>` : ''}
       <div class="ticket-sep"></div>
       <div style="font-size:0.85rem;">
-        ${c.items.map(it => `<div>${it.quantite}× ${escapeHtml(it.nom)}</div>`).join('')}
+        ${c.items.map(it => `<div>${it.quantite}× ${escapeHtml(it.nom)}${it.options && it.options.length ? ' <small>(' + escapeHtml(it.options.join(', ')) + ')</small>' : ''}</div>`).join('')}
       </div>
       <div class="ticket-total" style="font-size:0.95rem; margin-top:0.4rem;">
-        <span>Total</span><span>${formatMontant(c.montantTotal)}</span>
+        <span>Total</span><span>${formatMontant(c.total)}</span>
       </div>
-
       <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
-        <button class="btn btn--sm" onclick="validerCommande('${c.id}')" style="flex:1; background:#27ae60;">
-          ✅ Valider & Cuisine
-        </button>
-        <button class="btn btn--sm" onclick="annulerCommande('${c.id}')" style="flex:1; background:#c0392b;">
-          ❌ Annuler
-        </button>
+        <button class="btn btn--sm btn--success" style="flex:1;" onclick="validerCommande('${c.id}')">✅ Valider &amp; cuisine</button>
+        <button class="btn btn--sm btn--danger" style="flex:1;" onclick="annulerCommande('${c.id}')">❌ Annuler</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function afficherCommandesEnCuisine(liste) {
+  const container = document.getElementById('listeCommandesEnCuisine')
+      || document.getElementById('listeCommandesEnCours');
+  if (!container) return;
+
+  // Un serveur voit ses commandes et celles du site ; chef/admin voient tout
+  const visibles = liste.filter(c =>
+      USER.role !== 'serveur' || !c.servedBy || c.servedBy.id === USER.id
+  );
+
+  // Notification quand une commande vient de passer "Prête"
+  visibles.forEach(c => {
+    if (c.statut === 'PRETE' && statutsConnus[c.id] && statutsConnus[c.id] !== 'PRETE') {
+      toast(`✅ Commande #${c.numero} prête à servir !`, 'success');
+    }
+    statutsConnus[c.id] = c.statut;
+  });
+
+  if (visibles.length === 0) {
+    container.innerHTML = '<div class="empty-state">Aucune commande en cours.</div>';
+    return;
+  }
+
+  container.innerHTML = visibles.map(c => `
+    <div class="card" style="margin-bottom:0.8rem; display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+      <div>
+        <strong>#${escapeHtml(c.numero)}</strong> — ${libelleType(c)}<br>
+        <small>${c.items.length} article(s) · ${formatMontant(c.total)}</small>
+      </div>
+      <div style="text-align:right;">
+        <span class="badge ${c.statut === 'PRETE' ? 'badge--ok' : 'badge--wait'}">${escapeHtml(c.statut.replace('_', ' '))}</span><br>
+        ${c.statut === 'PRETE'
+      ? `<button class="btn btn--sm btn--success" style="margin-top:0.4rem;" onclick="encaisserCommande('${c.id}')">Encaisser</button>`
+      : ''}
       </div>
     </div>
   `).join('');
@@ -199,10 +241,8 @@ function afficherCommandesEnAttente(liste) {
 async function validerCommande(commandeId) {
   try {
     await apiPost(`/api/orders/${commandeId}/envoyer-cuisine`);
-
     toast('Commande envoyée en cuisine !', 'success');
     await chargerCommandesEnCours();
-
   } catch (err) {
     console.error('Erreur validation commande :', err);
     toast(err.message || 'Erreur lors de la validation', 'error');
@@ -211,18 +251,23 @@ async function validerCommande(commandeId) {
 
 async function annulerCommande(commandeId) {
   if (!confirm('Voulez-vous vraiment annuler cette commande ?')) return;
-
   try {
-    await apiPatch(`/api/orders/${commandeId}/statut`, {
-      statut: 'ANNULEE'
-    });
-
-    toast('Commande annulée', 'info');
+    await apiPatch(`/api/orders/${commandeId}/statut`, { statut: 'ANNULEE' });
+    toast('Commande annulée', 'success');
     await chargerCommandesEnCours();
-
   } catch (err) {
     console.error('Erreur annulation commande :', err);
     toast(err.message || "Erreur lors de l'annulation", 'error');
+  }
+}
+
+async function encaisserCommande(commandeId) {
+  try {
+    await apiPatch(`/api/orders/${commandeId}/statut`, { statut: 'TERMINEE' });
+    toast('Commande encaissée et terminée', 'success');
+    await chargerCommandesEnCours();
+  } catch (err) {
+    toast(err.message || "Erreur lors de l'encaissement", 'error');
   }
 }
 
