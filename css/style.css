@@ -425,7 +425,7 @@ footer {
   padding-top: var(--sat);
   padding-bottom: var(--sab);
 }
-.cart-drawer.open { right: 0; }
+
 .cart-drawer__header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem; border-bottom: 1px solid rgba(246,239,225,0.1); }
 .cart-drawer__body { flex: 1; overflow-y: auto; padding: 1rem 1.2rem; -webkit-overflow-scrolling: touch; }
 .cart-drawer__footer { padding: 1.2rem; border-top: 1px solid rgba(246,239,225,0.1); }
@@ -447,11 +447,6 @@ footer {
   justify-content: center;
 }
 
-
-
-/* ---------- Modal ---------- */
-
-.modal-overlay.open { display: flex; }
 
 /* ---------- App staff shell (caisse / cuisine / admin) ---------- */
 .app-shell { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
@@ -527,7 +522,8 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.modal-overlay.active {
+.modal-overlay.active,
+.modal-overlay.open {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -572,9 +568,7 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
   transition: right 0.3s ease;
 }
 
-.cart-drawer.open {
-  right: 0;
-}
+
 
 .overlay {
   position: fixed;
@@ -586,10 +580,4 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
   transition: opacity 0.25s ease;
 }
 
-.overlay.open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.modal-overlay.active { display: flex; }
-.overlay.active { opacity: 1; pointer-events: auto; }
+.overlay.open, .overlay.active { opacity: 1; pointer-events: auto; }
