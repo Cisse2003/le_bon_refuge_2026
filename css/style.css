@@ -361,8 +361,8 @@ input, select, textarea {
   font-family: var(--font-body);
   font-size: 1rem; /* Minimum 16px sur mobile pour empêcher Safari iOS de zoomer */
   margin-bottom: 1rem;
-  appearance: none;
-  -webkit-appearance: none;
+  appearance: auto;
+  -webkit-appearance: checkbox;
 }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
