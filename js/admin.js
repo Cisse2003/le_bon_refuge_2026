@@ -24,10 +24,9 @@ async function init() {
   });
   document.querySelectorAll('[data-close-modal]').forEach((b) => b.addEventListener('click', () => document.querySelectorAll('.modal-overlay').forEach((m) => m.classList.remove('open'))));
 
-  PRODUITS_CACHE = await apiGet('/api/products');
+  try { PRODUITS_CACHE = await apiGet('/api/products'); } catch (e) { console.error('products', e); }
   try { INGREDIENTS_CACHE = await apiGet('/api/ingredients'); } catch (e) { INGREDIENTS_CACHE = []; }
-
-  chargerDashboard();
+  chargerDashboard().catch((e) => console.error('dashboard', e));
 
   document.getElementById('btnNouveauProduit').addEventListener('click', () => ouvrirModaleProduit());
   document.getElementById('formProduit').addEventListener('submit', enregistrerProduit);
@@ -41,7 +40,7 @@ async function init() {
 
   document.getElementById('filtreStatutCommande').addEventListener('change', chargerCommandes);
 
-  surveillerChangements(() => {
+  if (typeof surveillerChangements === 'function') surveillerChangements(() => {
     const chargeurs = {
       dashboard: chargerDashboard, produits: chargerProduits, stock: chargerStock,
       ingredients: chargerIngredients, commandes: chargerCommandes,
@@ -383,30 +382,17 @@ async function chargerUtilisateurs() {
   }));
 }
 
-
 function ouvrirModaleUtilisateur(u) {
   const form = document.getElementById('formUtilisateur');
-
   form.reset();
-
-  form.elements.namedItem('id').value = u ? u.id : '';
-
-  if (u) {
-    form.elements.namedItem('nom').value = u.nom || '';
-    form.elements.namedItem('username').value = u.username || '';
-    form.elements.namedItem('role').value = u.role || 'serveur';
-  }
-
-  document.getElementById('hintMdp').textContent = u
-      ? '(laisser vide pour ne pas changer)'
-      : '(obligatoire pour un nouvel utilisateur)';
-
-  document.querySelector('#modalUtilisateur h3').textContent =
-      u ? 'Modifier un utilisateur' : 'Nouvel utilisateur';
-
+  form.elements['id'].value = u ? u.id : '';
+  form.elements['nom'].value = u ? u.nom : '';
+  form.elements['username'].value = u ? u.username : '';
+  form.elements['username'].readOnly = !!u;
+  form.elements['role'].value = u ? u.role : 'serveur';
+  document.getElementById('hintMdp').textContent = u ? '(laisser vide pour ne pas changer)' : '';
   document.getElementById('modalUtilisateur').classList.add('open');
 }
-
 
 async function enregistrerUtilisateur(e) {
   e.preventDefault();

@@ -659,29 +659,34 @@ if ($segments[0] === 'ingredients') {
 // --- USERS ---
 if ($segments[0] === 'users') {
     $id = $segments[1] ?? null;
+    $ROLES_OK = ['serveur', 'chef', 'assistant_chef', 'admin']; // jamais 'superviseur' depuis l'admin
+
     if ($method === 'GET' && !$id) {
-        requireRole('admin', 'superviseur');
-        $rows = $pdo->query('SELECT id, username, role, nom, actif, date_creation FROM users ORDER BY username')->fetchAll();
-        jsonResponse(array_map(function ($u) {
-            return [
-                'id'           => $u['id'],
-                'username'     => $u['username'],
-                'role'         => $u['role'],
-                'nom'          => $u['nom'],
-                'actif'        => (bool)$u['actif'],
-                'dateCreation' => $u['date_creation'],
-            ];
-        }, $rows));
+        $me = requireRole('admin', 'superviseur');
+        $where = $me['role'] === 'superviseur' ? '' : "WHERE role <> 'superviseur'";
+        $rows = $pdo->query("SELECT id, username, role, nom, actif, date_creation FROM users $where ORDER BY username")->fetchAll();
+        jsonResponse(array_map(fn($u) => [
+            'id' => $u['id'], 'username' => $u['username'], 'role' => $u['role'], 'nom' => $u['nom'],
+            'actif' => (bool)$u['actif'], 'dateCreation' => $u['date_creation'],
+        ], $rows));
     }
+
     if ($method === 'POST' && !$id) {
         $admin = requireRole('admin');
-        $id = uuid();
-        $username = $input['username'] ?? '';
-        $role = $input['role'] ?? 'serveur';
-        $hash = password_hash($input['password'] ?? 'changeme', PASSWORD_BCRYPT);
+        $username = trim((string)($input['username'] ?? ''));
+        $role = (string)($input['role'] ?? 'serveur');
+        $password = (string)($input['password'] ?? '');
+        $nom = trim((string)($input['nom'] ?? ''));
+        if ($username === '') jsonError('Identifiant requis');
+        if (!in_array($role, $ROLES_OK, true)) jsonError('Rôle invalide');
+        if (strlen($password) < 6) jsonError('Mot de passe : 6 caractères minimum');
+        $dup = $pdo->prepare('SELECT 1 FROM users WHERE LOWER(username) = LOWER(?)');
+        $dup->execute([$username]);
+        if ($dup->fetch()) jsonError('Cet identifiant existe déjà', 409);
 
+        $id = uuid();
         $pdo->prepare('INSERT INTO users (id, username, password_hash, role, nom, actif) VALUES (?,?,?,?,?,1)')
-            ->execute([$id, $username, $hash, $role, $input['nom'] ?? '']);
+            ->execute([$id, $username, password_hash($password, PASSWORD_BCRYPT), $role, $nom]);
 
         logAction([
             'utilisateur'    => $admin['username'],
@@ -690,51 +695,53 @@ if ($segments[0] === 'users') {
             'champ'          => 'utilisateurs',
             'nouvelleValeur' => "$username ($role)"
         ]);
-
-        jsonResponse(['id' => $id, 'username' => $username, 'role' => $role, 'nom' => $input['nom'] ?? '', 'actif' => true], 201);
+        jsonResponse(['id' => $id, 'username' => $username, 'role' => $role, 'nom' => $nom, 'actif' => true], 201);
     }
-    if ($method === 'PUT' && $id) {
+
+    if (in_array($method, ['PUT', 'DELETE'], true) && $id) {
         $admin = requireRole('admin');
         $stmt = $pdo->prepare('SELECT username, role FROM users WHERE id = ?');
         $stmt->execute([$id]);
-        $oldUser = $stmt->fetch();
+        $cible = $stmt->fetch();
+        if (!$cible) jsonError('Utilisateur introuvable', 404);
+        if ($cible['role'] === 'superviseur') jsonError("Compte non modifiable depuis l'administration", 403);
 
-        $fields = []; $params = [];
-        if (isset($input['nom'])) { $fields[] = 'nom = ?'; $params[] = $input['nom']; }
-        if (isset($input['role'])) { $fields[] = 'role = ?'; $params[] = $input['role']; }
-        if (isset($input['actif'])) { $fields[] = 'actif = ?'; $params[] = $input['actif'] ? 1 : 0; }
-        if (!empty($input['password'])) { $fields[] = 'password_hash = ?'; $params[] = password_hash($input['password'], PASSWORD_BCRYPT); }
-        if ($fields) {
-            $params[] = $id;
-            $pdo->prepare('UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?')->execute($params);
-
-            logAction([
-                'utilisateur'    => $admin['username'],
-                'role'           => $admin['role'],
-                'action'         => 'MODIFICATION_UTILISATEUR',
-                'champ'          => 'utilisateurs',
-                'ancienneValeur' => $oldUser['username'] . ' (' . $oldUser['role'] . ')',
-                'nouvelleValeur' => ($input['username'] ?? $oldUser['username']) . ' (' . ($input['role'] ?? $oldUser['role']) . ')'
-            ]);
+        if ($method === 'PUT') {
+            $fields = []; $params = [];
+            if (isset($input['nom'])) { $fields[] = 'nom = ?'; $params[] = trim((string)$input['nom']); }
+            if (isset($input['role'])) {
+                if (!in_array($input['role'], $ROLES_OK, true)) jsonError('Rôle invalide');
+                $fields[] = 'role = ?'; $params[] = $input['role'];
+            }
+            if (isset($input['actif'])) { $fields[] = 'actif = ?'; $params[] = $input['actif'] ? 1 : 0; }
+            if (!empty($input['password'])) {
+                if (strlen((string)$input['password']) < 6) jsonError('Mot de passe : 6 caractères minimum');
+                $fields[] = 'password_hash = ?'; $params[] = password_hash($input['password'], PASSWORD_BCRYPT);
+            }
+            if ($fields) {
+                $params[] = $id;
+                $pdo->prepare('UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?')->execute($params);
+                logAction([
+                    'utilisateur'    => $admin['username'],
+                    'role'           => $admin['role'],
+                    'action'         => 'MODIFICATION_UTILISATEUR',
+                    'champ'          => 'utilisateurs',
+                    'ancienneValeur' => $cible['username'] . ' (' . $cible['role'] . ')',
+                    'nouvelleValeur' => $cible['username'] . ' (' . ($input['role'] ?? $cible['role']) . ')'
+                ]);
+            }
+            jsonResponse(['ok' => true]);
         }
-        jsonResponse(['ok' => true]);
-    }
-    if ($method === 'DELETE' && $id) {
-        $admin = requireRole('admin');
-        $stmt = $pdo->prepare('SELECT username FROM users WHERE id = ?');
-        $stmt->execute([$id]);
-        $u = $stmt->fetch();
 
+        if ($id === $admin['id']) jsonError('Vous ne pouvez pas supprimer votre propre compte');
         $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
-
         logAction([
             'utilisateur'    => $admin['username'],
             'role'           => $admin['role'],
             'action'         => 'SUPPRESSION_UTILISATEUR',
             'champ'          => 'utilisateurs',
-            'ancienneValeur' => $u['username'] ?? $id
+            'ancienneValeur' => $cible['username']
         ]);
-
         jsonResponse(['ok' => true]);
     }
     jsonError('Route users inconnue', 404);
@@ -853,7 +860,7 @@ if ($segments[0] === 'upload' && $method === 'POST') {
 
 // --- SUPERVISION ---
 if ($segments[0] === 'supervision') {
-    requireRole('superviseur', 'admin');
+    requireRole('superviseur');
     $estSuperviseur = (currentUser()['role'] ?? '') === 'superviseur';
     $action = $segments[1] ?? '';
 
