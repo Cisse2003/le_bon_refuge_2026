@@ -3,6 +3,17 @@ let PRODUITS_CACHE = [];
 let INGREDIENTS_CACHE = [];
 
 const dateISO = (s) => String(s || '').replace(' ', 'T'); // dates MySQL compatibles Safari
+let USERS_CACHE = [];
+
+// Délégation : fonctionne même si init() s'arrête avant d'attacher ses écouteurs
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#btnNouvelUtilisateur')) { ouvrirModaleUtilisateur(); return; }
+  const edit = e.target.closest('[data-edit-user]');
+  if (edit) {
+    const u = USERS_CACHE.find((x) => x.id === edit.dataset.editUser);
+    if (u) ouvrirModaleUtilisateur(u);
+  }
+});
 
 async function init() {
   USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'superviseur']);
@@ -31,7 +42,6 @@ async function init() {
   document.getElementById('btnNouveauProduit').addEventListener('click', () => ouvrirModaleProduit());
   document.getElementById('formProduit').addEventListener('submit', enregistrerProduit);
 
-  document.getElementById('btnNouvelUtilisateur').addEventListener('click', () => ouvrirModaleUtilisateur());
   document.getElementById('formUtilisateur').addEventListener('submit', enregistrerUtilisateur);
 
   document.getElementById('btnNouvelIngredient').addEventListener('click', () => ouvrirModaleIngredient());
