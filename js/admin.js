@@ -2,6 +2,11 @@ let USER = null;
 let PRODUITS_CACHE = [];
 let INGREDIENTS_CACHE = [];
 
+if (typeof escapeHtml !== 'function') {
+  window.escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 const dateISO = (s) => String(s || '').replace(' ', 'T'); // dates MySQL compatibles Safari
 let USERS_CACHE = [];
 
@@ -37,8 +42,6 @@ async function init() {
 
   document.getElementById('formUtilisateur')
       .addEventListener('submit', enregistrerUtilisateur);
-
-  document.getElementById('formUtilisateur').addEventListener('submit', enregistrerUtilisateur);
 
   document.getElementById('btnNouvelIngredient').addEventListener('click', () => ouvrirModaleIngredient());
   document.getElementById('formIngredient').addEventListener('submit', enregistrerIngredient);
