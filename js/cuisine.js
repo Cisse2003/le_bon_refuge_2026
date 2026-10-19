@@ -105,6 +105,13 @@ async function charger() {
   premierChargement = false;
   if (nouvelle) biper();
 
+  console.log('[KDS] Réponse API', {
+    total: orders.length,
+    envoyees: orders.filter(o => o.envoiCuisine).length,
+    premierStatut: orders.find(o => o.envoiCuisine)?.statut,
+    posteActif
+  });
+
   const pertinentes = orders.filter((o) => o.envoiCuisine && itemsPourPoste(o).length > 0);
 
   const auj = new Date().toLocaleDateString('fr-CA'); // AAAA-MM-JJ, heure locale
@@ -116,6 +123,14 @@ async function charger() {
     } else if (parStatut[st]) {
       parStatut[st].push(o);
     }
+  });
+
+  console.log('[KDS] Résultat du filtrage', {
+    pertinentes: pertinentes.length,
+    nouvelles: parStatut.NOUVELLE.length,
+    preparation: parStatut.EN_PREPARATION.length,
+    pretes: parStatut.PRETE.length,
+    terminees: parStatut.TERMINEE.length
   });
 
   document.getElementById('colNouvelle').innerHTML = rendreColonne(parStatut.NOUVELLE, true);
