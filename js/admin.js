@@ -5,16 +5,6 @@ let INGREDIENTS_CACHE = [];
 const dateISO = (s) => String(s || '').replace(' ', 'T'); // dates MySQL compatibles Safari
 let USERS_CACHE = [];
 
-// Délégation : fonctionne même si init() s'arrête avant d'attacher ses écouteurs
-document.addEventListener('click', (e) => {
-  if (e.target.closest('#btnNouvelUtilisateur')) { ouvrirModaleUtilisateur(); return; }
-  const edit = e.target.closest('[data-edit-user]');
-  if (edit) {
-    const u = USERS_CACHE.find((x) => x.id === edit.dataset.editUser);
-    if (u) ouvrirModaleUtilisateur(u);
-  }
-});
-
 async function init() {
   USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'superviseur']);
   if (!USER) return;
@@ -41,6 +31,12 @@ async function init() {
 
   document.getElementById('btnNouveauProduit').addEventListener('click', () => ouvrirModaleProduit());
   document.getElementById('formProduit').addEventListener('submit', enregistrerProduit);
+
+  document.getElementById('btnNouvelUtilisateur')
+      .addEventListener('click', () => ouvrirModaleUtilisateur());
+
+  document.getElementById('formUtilisateur')
+      .addEventListener('submit', enregistrerUtilisateur);
 
   document.getElementById('formUtilisateur').addEventListener('submit', enregistrerUtilisateur);
 
@@ -373,23 +369,55 @@ async function chargerReservations() {
 
 // ---------------- UTILISATEURS ----------------
 async function chargerUtilisateurs() {
-  const users = await apiGet('/api/users');
-  document.getElementById('tblUtilisateurs').innerHTML = users.map((u) => `
-    <tr>
-      <td>${u.nom}</td><td>${u.username}</td><td>${u.role}</td>
-      <td>${u.actif ? '<span class="badge badge--ok">Oui</span>' : '<span class="badge badge--out">Non</span>'}</td>
-      <td>
-        <button class="btn btn--sm btn--ghost" data-edit-user="${u.id}">Modifier</button>
-        <button class="btn btn--sm btn--danger" data-del-user="${u.id}">Suppr.</button>
-      </td>
-    </tr>
-  `).join('');
-  document.querySelectorAll('[data-edit-user]').forEach((b) => b.addEventListener('click', () => ouvrirModaleUtilisateur(users.find((u) => u.id === b.dataset.editUser))));
-  document.querySelectorAll('[data-del-user]').forEach((b) => b.addEventListener('click', async () => {
-    if (!confirm('Supprimer cet utilisateur ?')) return;
-    await apiDelete(`/api/users/${b.dataset.delUser}`);
-    chargerUtilisateurs();
-  }));
+  try {
+    USERS_CACHE = await apiGet('/api/users');
+
+    const users = USERS_CACHE;
+
+    document.getElementById('tblUtilisateurs').innerHTML = users.map((u) => `
+      <tr>
+        <td>${escapeHtml(u.nom)}</td>
+        <td>${escapeHtml(u.username)}</td>
+        <td>${escapeHtml(u.role)}</td>
+        <td>${u.actif
+        ? '<span class="badge badge--ok">Oui</span>'
+        : '<span class="badge badge--out">Non</span>'}</td>
+        <td>
+          <button type="button" class="btn btn--sm btn--ghost"
+            data-edit-user="${u.id}">Modifier</button>
+          <button type="button" class="btn btn--sm btn--danger"
+            data-del-user="${u.id}">Suppr.</button>
+        </td>
+      </tr>
+    `).join('');
+
+    document.querySelectorAll('[data-edit-user]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const utilisateur = USERS_CACHE.find(
+            (u) => String(u.id) === btn.dataset.editUser
+        );
+
+        if (utilisateur) ouvrirModaleUtilisateur(utilisateur);
+      });
+    });
+
+    document.querySelectorAll('[data-del-user]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Supprimer cet utilisateur ?')) return;
+
+        try {
+          await apiDelete(`/api/users/${btn.dataset.delUser}`);
+          await chargerUtilisateurs();
+          toast('Utilisateur supprimé', 'success');
+        } catch (err) {
+          toast(err.message, 'error');
+        }
+      });
+    });
+  } catch (err) {
+    console.error('Erreur chargement utilisateurs :', err);
+    toast(err.message, 'error');
+  }
 }
 
 function ouvrirModaleUtilisateur(u) {
