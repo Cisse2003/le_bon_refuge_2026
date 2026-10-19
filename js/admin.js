@@ -383,14 +383,30 @@ async function chargerUtilisateurs() {
   }));
 }
 
+
 function ouvrirModaleUtilisateur(u) {
   const form = document.getElementById('formUtilisateur');
+
   form.reset();
-  form.id.value = u ? u.id : '';
-  if (u) { form.nom.value = u.nom; form.username.value = u.username; form.role.value = u.role; }
-  document.getElementById('hintMdp').textContent = u ? '(laisser vide pour ne pas changer)' : '';
+
+  form.elements.namedItem('id').value = u ? u.id : '';
+
+  if (u) {
+    form.elements.namedItem('nom').value = u.nom || '';
+    form.elements.namedItem('username').value = u.username || '';
+    form.elements.namedItem('role').value = u.role || 'serveur';
+  }
+
+  document.getElementById('hintMdp').textContent = u
+      ? '(laisser vide pour ne pas changer)'
+      : '(obligatoire pour un nouvel utilisateur)';
+
+  document.querySelector('#modalUtilisateur h3').textContent =
+      u ? 'Modifier un utilisateur' : 'Nouvel utilisateur';
+
   document.getElementById('modalUtilisateur').classList.add('open');
 }
+
 
 async function enregistrerUtilisateur(e) {
   e.preventDefault();
