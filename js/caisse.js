@@ -176,11 +176,11 @@ function afficherCommandesEnAttente(liste) {
   container.innerHTML = liste.map(c => `
     <div class="card" style="margin-bottom:0.8rem; border-left:4px solid var(--accent);">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
-        <strong>#${escapeHtml(c.numero)} — ${escapeHtml(c.clientNom || 'Client')}</strong>
+        <strong>#${escapeHtml(c.numero)} - ${escapeHtml(c.clientNom || 'Client')}</strong>
         <span class="badge badge--wait">En attente</span>
       </div>
       <p style="margin:0.4rem 0; font-size:0.9rem;">
-        📞 <a href="tel:${escapeHtml(c.clientTel || '')}" style="color:var(--accent); font-weight:bold;">${escapeHtml(c.clientTel || '—')}</a><br>
+        📞 <a href="tel:${escapeHtml(c.clientTel || '')}" style="color:var(--accent); font-weight:bold;">${escapeHtml(c.clientTel || '-')}</a><br>
         <em>${libelleType(c)}</em>
       </p>
       ${c.notes ? `<p style="margin:0.2rem 0; font-size:0.82rem; color:var(--accent);">📝 ${escapeHtml(c.notes)}</p>` : ''}
@@ -225,7 +225,7 @@ function afficherCommandesEnCuisine(liste) {
   container.innerHTML = visibles.map(c => `
     <div class="card" style="margin-bottom:0.8rem; display:flex; justify-content:space-between; align-items:center; gap:1rem;">
       <div>
-        <strong>#${escapeHtml(c.numero)}</strong> — ${libelleType(c)}<br>
+        <strong>#${escapeHtml(c.numero)}</strong> - ${libelleType(c)}<br>
         <small>${c.items.length} article(s) · ${formatMontant(c.total)}</small>
       </div>
       <div style="text-align:right;">
