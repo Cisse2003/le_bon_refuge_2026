@@ -361,10 +361,35 @@ input, select, textarea {
   font-family: var(--font-body);
   font-size: 1rem; /* Minimum 16px sur mobile pour empêcher Safari iOS de zoomer */
   margin-bottom: 1rem;
-  appearance: auto;
-  -webkit-appearance: checkbox;
+  /*appearance: auto;
+  -webkit-appearance: checkbox;*/
+
 }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Cases à cocher et boutons radio : taille fixe, pas le style des champs texte */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: auto;
+  -webkit-appearance: auto;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+  background: transparent;
+}
+
+/* Écran cuisine : toute la ligne de l'article est cliquable, à la main avec des gants */
+.kds-item-row label {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.3rem 0;
+  gap: 0.7rem !important;
+}
 
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
