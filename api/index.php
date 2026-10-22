@@ -457,7 +457,7 @@ if ($segments[0] === 'orders') {
         if ((int)$rest->fetchColumn() === 0) {
             $pdo->prepare('UPDATE orders SET statut = "PRETE", date_modif = ? WHERE id = ?')->execute([now(), $id]);
         } else {
-            $pdo->prepare('UPDATE orders SET statut = "EN_PREPARATION", date_modif = ? WHERE id = ? AND statut IN ("NOUVELLE","CONFIRMEE")')->execute([now(), $id]);
+            $pdo->prepare('UPDATE orders SET statut = "EN_PREPARATION", date_modif = ? WHERE id = ? AND statut IN ("NOUVELLE","CONFIRMEE","PRETE")')->execute([now(), $id]);
         }
         jsonResponse(fetchOrderById($pdo, $id));
     }

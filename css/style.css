@@ -552,24 +552,6 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
   padding: 0.2rem;
 }
 
-
-/* Tiroir du panier (Cart Drawer) */
-.cart-drawer {
-  position: fixed;
-  top: 0;
-  right: -400px;
-  width: 100%;
-  max-width: 380px;
-  height: 100%;
-  background: var(--surface, #1e1e1e);
-  z-index: 1500;
-  display: flex;
-  flex-direction: column;
-  transition: right 0.3s ease;
-}
-
-
-
 .overlay {
   position: fixed;
   inset: 0;

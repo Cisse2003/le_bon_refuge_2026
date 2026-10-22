@@ -1,6 +1,7 @@
 let USER = null;
 let socket = null;
 let posteActif = 'tous';
+let COMMANDES = [];
 
 function biper() {
   try {
@@ -40,29 +41,6 @@ function itemsPourPoste(order) {
 }
 
 
-
-function attacherEvenements() {
-  document.querySelectorAll('input[type=checkbox][data-item]').forEach((chk) => {
-    chk.addEventListener('change', async () => {
-      const nouveauStatut = chk.checked ? 'PRETE' : 'EN_PREPARATION';
-      try {
-        await apiPatch(`/api/orders/${chk.dataset.order}/items/${chk.dataset.item}/statut`, { statutItem: nouveauStatut });
-        charger();
-      } catch (err) { toast(err.message, 'error'); }
-    });
-  });
-  document.querySelectorAll('[data-annuler]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('Annuler cette commande ?')) return;
-      try {
-        await apiPatch(`/api/orders/${btn.dataset.annuler}/statut`, { statut: 'ANNULEE' });
-        charger();
-      } catch (err) { toast(err.message, 'error'); }
-    });
-  });
-}
-
-
 const commandesConnues = new Set();
 let premierChargement = true;
 
@@ -93,6 +71,7 @@ async function charger() {
     return;
   }
   if (!Array.isArray(orders)) return;
+  COMMANDES = orders;
 
   // Bip pour chaque commande envoyée en cuisine apparue depuis le dernier rafraîchissement
   let nouvelle = false;
@@ -125,53 +104,106 @@ async function charger() {
     }
   });
 
+  /*
   console.log('[KDS] Résultat du filtrage', {
     pertinentes: pertinentes.length,
     nouvelles: parStatut.NOUVELLE.length,
     preparation: parStatut.EN_PREPARATION.length,
     pretes: parStatut.PRETE.length,
     terminees: parStatut.TERMINEE.length
-  });
+  });  */
 
-  document.getElementById('colNouvelle').innerHTML = rendreColonne(parStatut.NOUVELLE, true);
-  document.getElementById('colEnPreparation').innerHTML = rendreColonne(parStatut.EN_PREPARATION, false);
-  document.getElementById('colPrete').innerHTML = rendreColonne(parStatut.PRETE, false);
-  document.getElementById('colTerminee').innerHTML = rendreColonne(parStatut.TERMINEE.slice(0, 8), false, true);
-
+  document.getElementById('colNouvelle').innerHTML = rendreColonne(parStatut.NOUVELLE, 'NOUVELLE', true);
+  document.getElementById('colEnPreparation').innerHTML = rendreColonne(parStatut.EN_PREPARATION, 'EN_PREPARATION', false);
+  document.getElementById('colPrete').innerHTML = rendreColonne(parStatut.PRETE, 'PRETE', false);
+  document.getElementById('colTerminee').innerHTML = rendreColonne(parStatut.TERMINEE.slice(0, 8), 'TERMINEE', false);
   attacherEvenements();
 }
 
-function rendreColonne(orders, urgent, lectureSeule) {
+function rendreColonne(orders, statut, urgent) {
   if (orders.length === 0) return '<div class="empty-state" style="padding:1rem 0;">-</div>';
+  const lectureSeule = statut === 'TERMINEE';
+  const casesActives = statut === 'EN_PREPARATION' || statut === 'PRETE';
+
   return orders.map((o) => {
     const lieu = o.table ? 'Table ' + escapeHtml(o.table)
         : o.type === 'a_emporter' ? 'À emporter'
             : o.type === 'a_l_avance' ? "À l'avance"
                 : escapeHtml(o.type);
+
+    const lignes = itemsPourPoste(o).map((it) => {
+      const texte = `${it.quantite}× ${escapeHtml(it.nom)}
+        ${it.options && it.options.length ? '<em>(' + escapeHtml(it.options.join(', ')) + ')</em>' : ''}
+        ${detailPerso(it.personnalisation)}`;
+      if (!casesActives) {
+        return `<div class="kds-item-row ${it.statutItem === 'PRETE' ? 'done' : ''}"><span>${texte}</span></div>`;
+      }
+      return `
+        <div class="kds-item-row ${it.statutItem === 'PRETE' ? 'done' : ''}">
+          <label style="display:flex; gap:0.4em; align-items:center; cursor:pointer;">
+            <input type="checkbox" ${it.statutItem === 'PRETE' ? 'checked' : ''}
+              data-order="${o.id}" data-item="${it.id}">
+            <span>${texte}</span>
+          </label>
+        </div>`;
+    }).join('');
+
+    const actions = statut === 'NOUVELLE'
+        ? `<button class="btn btn--sm" data-demarrer="${o.id}">🔥 Démarrer la préparation</button>`
+        : '';
+    const annuler = !lectureSeule
+        ? `<button class="btn btn--sm btn--ghost" data-annuler="${o.id}">Annuler</button>`
+        : '';
+
     return `
     <div class="card kds-card ${urgent ? 'urgent' : ''}">
       <h4><span>#${escapeHtml(o.numero)}</span><span>${formatHeure(dateISO(o.dateCreation))}</span></h4>
       <div class="tag-poste">${lieu}</div>
       ${o.clientNom ? `<div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.3rem;">${escapeHtml(o.clientNom)}</div>` : ''}
-      <div style="margin-top:0.6rem;">
-        ${itemsPourPoste(o).map((it) => `
-          <div class="kds-item-row ${it.statutItem === 'PRETE' ? 'done' : ''}">
-            <label style="display:flex; gap:0.4em; align-items:center; cursor:${lectureSeule ? 'default' : 'pointer'};">
-              <input type="checkbox" ${it.statutItem === 'PRETE' ? 'checked' : ''} ${lectureSeule ? 'disabled' : ''}
-                data-order="${o.id}" data-item="${it.id}">
-              <span>${it.quantite}× ${escapeHtml(it.nom)}
-              ${it.options && it.options.length ? '<em>(' + escapeHtml(it.options.join(', ')) + ')</em>' : ''}
-              ${detailPerso(it.personnalisation)}</span>
-            </label>
-          </div>
-        `).join('')}
-      </div>
+      <div style="margin-top:0.6rem;">${lignes}</div>
       ${o.notes ? `<div style="margin-top:0.5rem; font-size:0.82rem; color:var(--accent);">📝 ${escapeHtml(o.notes)}</div>` : ''}
-      ${!lectureSeule ? `
-      <div style="margin-top:0.8rem; display:flex; gap:0.4rem; flex-wrap:wrap;">
-        <button class="btn btn--sm btn--ghost" data-annuler="${o.id}">Annuler</button>
-      </div>` : ''}
+      <div style="margin-top:0.8rem; display:flex; gap:0.4rem; flex-wrap:wrap;">${actions}${annuler}</div>
     </div>`;
   }).join('');
+}
+
+function attacherEvenements() {
+  // Démarrer : tous les articles de la commande passent "en préparation"
+  document.querySelectorAll('[data-demarrer]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const commande = COMMANDES.find((o) => o.id === btn.dataset.demarrer);
+      if (!commande) return;
+      try {
+        for (const it of commande.items) {
+          if (it.statutItem === 'ATTENTE') {
+            await apiPatch(`/api/orders/${commande.id}/items/${it.id}/statut`, { statutItem: 'EN_PREPARATION' });
+          }
+        }
+        charger();
+      } catch (err) { toast(err.message, 'error'); btn.disabled = false; }
+    });
+  });
+
+  // Cases : article prêt / retour en préparation
+  document.querySelectorAll('input[type=checkbox][data-item]').forEach((chk) => {
+    chk.addEventListener('change', async () => {
+      const nouveauStatut = chk.checked ? 'PRETE' : 'EN_PREPARATION';
+      try {
+        await apiPatch(`/api/orders/${chk.dataset.order}/items/${chk.dataset.item}/statut`, { statutItem: nouveauStatut });
+        charger();
+      } catch (err) { toast(err.message, 'error'); chk.checked = !chk.checked; }
+    });
+  });
+
+  document.querySelectorAll('[data-annuler]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Annuler cette commande ?')) return;
+      try {
+        await apiPatch(`/api/orders/${btn.dataset.annuler}/statut`, { statut: 'ANNULEE' });
+        charger();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+  });
 }
 init();
