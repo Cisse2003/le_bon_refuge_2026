@@ -192,8 +192,8 @@ function afficherCommandesEnAttente(liste) {
         <span>Total</span><span>${formatMontant(c.total)}</span>
       </div>
       <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
-        <button class="btn btn--sm btn--success" style="flex:1;" onclick="validerCommande('${c.id}')">✅ Valider &amp; cuisine</button>
-        <button class="btn btn--sm btn--danger" style="flex:1;" onclick="annulerCommande('${c.id}')">❌ Annuler</button>
+        <button class="btn btn--sm btn--success" style="flex:1;" onclick="validerCommande('${c.id}')">VALIDER</button>
+        <button class="btn btn--sm btn--danger" style="flex:1;" onclick="annulerCommande('${c.id}')">ANNULER</button>
       </div>
     </div>
   `).join('');
