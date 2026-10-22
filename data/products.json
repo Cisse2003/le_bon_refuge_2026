@@ -112,7 +112,7 @@
     "categorie": "Pizzas",
     "nom": "Pizza Margherita",
     "description": "Sauce tomate, mozzarella, basilic.",
-    "prix": 70000,
+    "prix": 55000,
     "photo": "",
     "poste": "cuisine",
     "options": [
@@ -317,171 +317,371 @@
   },
   {
     "id": "p016",
-    "categorie": "Plats chauds",
+    "categorie": "Plats Chauds",
     "nom": "Riz gras poulet / poisson",
     "description": "Riz gras traditionnel servi avec du poulet ou du poisson[cite: 1].",
     "prix": 25000,
     "photo": "",
     "poste": "cuisine",
-    "options": ["Poulet", "Poisson"],
-    "disponible": true
+    "options": [
+      "Poulet",
+      "Poisson"
+    ],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing012",
+        "quantite": 250
+      },
+      {
+        "ingredientId": "ing001",
+        "quantite": 150
+      }
+    ]
   },
   {
     "id": "p017",
-    "categorie": "Plats chauds",
+    "categorie": "Plats Chauds",
     "nom": "Riz gras à la viande",
     "description": "Riz gras traditionnel servi avec de la viande[cite: 1].",
     "prix": 30000,
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing012",
+        "quantite": 250
+      },
+      {
+        "ingredientId": "ing003",
+        "quantite": 150
+      }
+    ]
   },
   {
     "id": "p018",
-    "categorie": "Plats chauds",
+    "categorie": "Plats Chauds",
     "nom": "Garba poulet / poisson",
-    "description": "Plat de garba accompagné de poulet ou de poisson[cite: 1].",
+    "description": "Semoule de manioc accompagnée de poulet ou de poisson[cite: 1].",
     "prix": 50000,
     "photo": "",
     "poste": "cuisine",
-    "options": ["Poulet", "Poisson"],
-    "disponible": true
+    "options": [
+      "Poulet",
+      "Poisson"
+    ],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing013",
+        "quantite": 200
+      },
+      {
+        "ingredientId": "ing001",
+        "quantite": 150
+      }
+    ]
   },
   {
     "id": "p019",
-    "categorie": "Plats chauds",
+    "categorie": "Plats Chauds",
     "nom": "Petit pois au poulet",
     "description": "Plat de petits pois mijotés au poulet[cite: 1].",
     "prix": 40000,
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing014",
+        "quantite": 200
+      },
+      {
+        "ingredientId": "ing001",
+        "quantite": 150
+      }
+    ]
   },
   {
     "id": "p020",
-    "categorie": "Plats chauds",
+    "categorie": "Plats Chauds",
     "nom": "Petit pois à la viande",
     "description": "Plat de petits pois mijotés à la viande[cite: 1].",
     "prix": 45000,
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing014",
+        "quantite": 200
+      },
+      {
+        "ingredientId": "ing003",
+        "quantite": 150
+      }
+    ]
   },
   {
     "id": "p021",
-    "categorie": "Plats chauds",
+    "categorie": "Plats Chauds",
     "nom": "Spaghetti au poulet",
-    "description": "Spaghetti préparés avec du poulet[cite: 1].",
+    "description": "Spaghettis sautés ou en sauce servis avec du poulet[cite: 1].",
     "prix": 20000,
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing015",
+        "quantite": 150
+      },
+      {
+        "ingredientId": "ing001",
+        "quantite": 100
+      }
+    ]
   },
   {
     "id": "p022",
-    "categorie": "Plats chauds",
+    "categorie": "Plats Chauds",
+    "nom": "Spaghetti à la viande",
+    "description": "Spaghettis servis avec de la viande[cite: 1].",
+    "prix": 20000,
+    "photo": "",
+    "poste": "cuisine",
+    "options": [],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing015",
+        "quantite": 150
+      },
+      {
+        "ingredientId": "ing003",
+        "quantite": 100
+      }
+    ]
+  },
+  {
+    "id": "p023",
+    "categorie": "Plats Chauds",
     "nom": "Spaghetti bolognaise",
-    "description": "Spaghetti à la sauce bolognaise[cite: 1].",
+    "description": "Spaghettis à la sauce bolognaise[cite: 1].",
     "prix": 25000,
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
-  },
-  {
-    "id": "p023",
-    "categorie": "Pizzas",
-    "nom": "Pizza Poulet",
-    "description": "Pizza garnie au poulet[cite: 1].",
-    "prix": 90000,
-    "photo": "",
-    "poste": "cuisine",
-    "options": ["Petite", "Moyenne", "Grande"],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing015",
+        "quantite": 150
+      },
+      {
+        "ingredientId": "ing003",
+        "quantite": 100
+      }
+    ]
   },
   {
     "id": "p024",
     "categorie": "Pizzas",
-    "nom": "Pizza Viande",
-    "description": "Pizza garnie à la viande[cite: 1].",
-    "prix": 95000,
+    "nom": "Pizza Poulet",
+    "description": "Sauce tomate, mozzarella et morceaux de poulet[cite: 1].",
+    "prix": 90000,
     "photo": "",
     "poste": "cuisine",
-    "options": ["Petite", "Moyenne", "Grande"],
-    "disponible": true
+    "options": [
+      "Petite",
+      "Moyenne",
+      "Grande"
+    ],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing005",
+        "quantite": 1
+      },
+      {
+        "ingredientId": "ing001",
+        "quantite": 100
+      }
+    ]
   },
   {
     "id": "p025",
     "categorie": "Pizzas",
-    "nom": "Pizza Thongwenmo",
-    "description": "Pizza spéciale Thongwenmo[cite: 1].",
-    "prix": 100000,
+    "nom": "Pizza Viande",
+    "description": "Sauce tomate, mozzarella et viande hachée[cite: 1].",
+    "prix": 95000,
     "photo": "",
     "poste": "cuisine",
-    "options": ["Petite", "Moyenne", "Grande"],
-    "disponible": true
+    "options": [
+      "Petite",
+      "Moyenne",
+      "Grande"
+    ],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing005",
+        "quantite": 1
+      },
+      {
+        "ingredientId": "ing003",
+        "quantite": 100
+      }
+    ]
   },
   {
     "id": "p026",
-    "categorie": "Poulet braisé",
+    "categorie": "Pizzas",
+    "nom": "Pizza Thongwenmo",
+    "description": "Spécialité de pizza de la maison[cite: 1].",
+    "prix": 100000,
+    "photo": "",
+    "poste": "cuisine",
+    "options": [
+      "Petite",
+      "Moyenne",
+      "Grande"
+    ],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing005",
+        "quantite": 1
+      }
+    ]
+  },
+  {
+    "id": "p027",
+    "categorie": "Poulet Braisé",
     "nom": "Demi-poulet braisé",
     "description": "Demi-poulet braisé servi avec frites ou alloco[cite: 1].",
     "prix": 55000,
     "photo": "",
     "poste": "cuisine",
-    "options": ["Frites", "Alloco"],
-    "disponible": true
+    "options": [
+      "Frites",
+      "Alloco"
+    ],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing001",
+        "quantite": 250
+      },
+      {
+        "ingredientId": "ing007",
+        "quantite": 100
+      }
+    ]
   },
   {
-    "id": "p027",
-    "categorie": "Poulet braisé",
+    "id": "p028",
+    "categorie": "Poulet Braisé",
     "nom": "Poulet entier braisé",
     "description": "Poulet entier braisé servi avec frites ou alloco[cite: 1].",
     "prix": 110000,
     "photo": "",
     "poste": "cuisine",
-    "options": ["Frites", "Alloco"],
-    "disponible": true
-  },
-  {
-    "id": "p028",
-    "categorie": "Fast-food",
-    "nom": "Shawarma à la viande",
-    "description": "Shawarma garni de viande[cite: 1].",
-    "prix": 30000,
-    "photo": "",
-    "poste": "cuisine",
-    "options": [],
-    "disponible": true
+    "options": [
+      "Frites",
+      "Alloco"
+    ],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing001",
+        "quantite": 500
+      },
+      {
+        "ingredientId": "ing007",
+        "quantite": 200
+      }
+    ]
   },
   {
     "id": "p029",
     "categorie": "Fast-food",
-    "nom": "Tacos poulet",
-    "description": "Tacos au poulet[cite: 1].",
-    "prix": 65000,
+    "nom": "Burger viande",
+    "description": "Burger garni de viande avec frites[cite: 1].",
+    "prix": 55000,
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing003",
+        "quantite": 150
+      },
+      {
+        "ingredientId": "ing007",
+        "quantite": 100
+      }
+    ]
   },
   {
     "id": "p030",
     "categorie": "Fast-food",
+    "nom": "Shawarma à la viande",
+    "description": "Shawarma savoureux à la viande[cite: 1].",
+    "prix": 30000,
+    "photo": "",
+    "poste": "cuisine",
+    "options": [],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing003",
+        "quantite": 120
+      }
+    ]
+  },
+  {
+    "id": "p031",
+    "categorie": "Fast-food",
+    "nom": "Tacos poulet",
+    "description": "Tacos garni au poulet[cite: 1].",
+    "prix": 65000,
+    "photo": "",
+    "poste": "cuisine",
+    "options": [],
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing001",
+        "quantite": 150
+      }
+    ]
+  },
+  {
+    "id": "p032",
+    "categorie": "Fast-food",
     "nom": "Tacos viande hachée",
-    "description": "Tacos à la viande hachée[cite: 1].",
+    "description": "Tacos garni à la viande hachée[cite: 1].",
     "prix": 75000,
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing003",
+        "quantite": 150
+      }
+    ]
   },
   {
-    "id": "p031",
+    "id": "p033",
     "categorie": "Fataya",
     "nom": "Fataya poulet",
     "description": "Beignets farcis au poulet[cite: 1].",
@@ -489,10 +689,16 @@
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing001",
+        "quantite": 80
+      }
+    ]
   },
   {
-    "id": "p032",
+    "id": "p034",
     "categorie": "Fataya",
     "nom": "Fataya viande",
     "description": "Beignets farcis à la viande[cite: 1].",
@@ -500,13 +706,19 @@
     "photo": "",
     "poste": "cuisine",
     "options": [],
-    "disponible": true
+    "disponible": true,
+    "recette": [
+      {
+        "ingredientId": "ing003",
+        "quantite": 80
+      }
+    ]
   },
   {
-    "id": "p033",
+    "id": "p035",
     "categorie": "Crèmerie",
     "nom": "Glace petit format",
-    "description": "Glace en petit format[cite: 1].",
+    "description": "Glace format individuel[cite: 1].",
     "prix": 5000,
     "photo": "",
     "poste": "cremerie",
@@ -514,10 +726,10 @@
     "disponible": true
   },
   {
-    "id": "p034",
+    "id": "p036",
     "categorie": "Crèmerie",
     "nom": "Glace grand format",
-    "description": "Glace en grand format[cite: 1].",
+    "description": "Glace grand format[cite: 1].",
     "prix": 10000,
     "photo": "",
     "poste": "cremerie",
@@ -525,7 +737,7 @@
     "disponible": true
   },
   {
-    "id": "p035",
+    "id": "p037",
     "categorie": "Boissons",
     "nom": "Fanta",
     "description": "Boisson gazeuse Fanta[cite: 1].",
@@ -536,10 +748,10 @@
     "disponible": true
   },
   {
-    "id": "p036",
+    "id": "p038",
     "categorie": "Boissons",
     "nom": "Coca",
-    "description": "Coca-Cola[cite: 1].",
+    "description": "Boisson gazeuse Coca-Cola[cite: 1].",
     "prix": 10000,
     "photo": "",
     "poste": "cuisine",
@@ -547,7 +759,7 @@
     "disponible": true
   },
   {
-    "id": "p037",
+    "id": "p039",
     "categorie": "Boissons",
     "nom": "Sagiko",
     "description": "Boisson Sagiko[cite: 1].",
@@ -558,7 +770,7 @@
     "disponible": true
   },
   {
-    "id": "p038",
+    "id": "p040",
     "categorie": "Boissons",
     "nom": "Fruitalos",
     "description": "Jus Fruitalos[cite: 1].",
@@ -569,7 +781,7 @@
     "disponible": true
   },
   {
-    "id": "p039",
+    "id": "p041",
     "categorie": "Boissons",
     "nom": "Comando",
     "description": "Boisson Comando[cite: 1].",
@@ -580,7 +792,7 @@
     "disponible": true
   },
   {
-    "id": "p040",
+    "id": "p042",
     "categorie": "Boissons",
     "nom": "Vimto",
     "description": "Boisson Vimto[cite: 1].",
@@ -591,7 +803,7 @@
     "disponible": true
   },
   {
-    "id": "p041",
+    "id": "p043",
     "categorie": "Boissons",
     "nom": "Red Bull",
     "description": "Boisson énergisante Red Bull[cite: 1].",
@@ -602,10 +814,10 @@
     "disponible": true
   },
   {
-    "id": "p042",
+    "id": "p044",
     "categorie": "Boissons",
     "nom": "Caprisun",
-    "description": "Jus Caprisun[cite: 1].",
+    "description": "Jus de fruits Caprisun[cite: 1].",
     "prix": 5000,
     "photo": "",
     "poste": "cuisine",
@@ -613,7 +825,7 @@
     "disponible": true
   },
   {
-    "id": "p043",
+    "id": "p045",
     "categorie": "Boissons",
     "nom": "Jus bidon",
     "description": "Jus en format bidon[cite: 1].",
@@ -624,7 +836,7 @@
     "disponible": true
   },
   {
-    "id": "p044",
+    "id": "p046",
     "categorie": "Boissons",
     "nom": "Jus carton",
     "description": "Jus en format carton[cite: 1].",
@@ -635,7 +847,7 @@
     "disponible": true
   },
   {
-    "id": "p045",
+    "id": "p047",
     "categorie": "Boissons",
     "nom": "Eau petit bidon",
     "description": "Eau minérale petit bidon[cite: 1].",
@@ -646,7 +858,7 @@
     "disponible": true
   },
   {
-    "id": "p046",
+    "id": "p048",
     "categorie": "Boissons",
     "nom": "Eau grand bidon",
     "description": "Eau minérale grand bidon[cite: 1].",
@@ -657,7 +869,7 @@
     "disponible": true
   },
   {
-    "id": "p047",
+    "id": "p049",
     "categorie": "Boissons",
     "nom": "Lait Manan grand",
     "description": "Lait Manan grand format[cite: 1].",
@@ -668,7 +880,7 @@
     "disponible": true
   },
   {
-    "id": "p048",
+    "id": "p050",
     "categorie": "Boissons",
     "nom": "Lait Manan petit",
     "description": "Lait Manan petit format[cite: 1].",
@@ -679,7 +891,7 @@
     "disponible": true
   },
   {
-    "id": "p049",
+    "id": "p051",
     "categorie": "Boissons",
     "nom": "Lait Malipan grand",
     "description": "Lait Malipan grand format[cite: 1].",
@@ -690,7 +902,7 @@
     "disponible": true
   },
   {
-    "id": "p050",
+    "id": "p052",
     "categorie": "Boissons",
     "nom": "Lait Malipan petit",
     "description": "Lait Malipan petit format[cite: 1].",
