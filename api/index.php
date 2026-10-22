@@ -121,24 +121,12 @@ if ($segments[0] === 'settings') {
 // --- PRODUCTS ---
 if ($segments[0] === 'products') {
     $id = $segments[1] ?? null;
-    /*
+
     if ($method === 'GET' && !$id) {
         $rows = $pdo->query('SELECT * FROM products ORDER BY categorie, nom')->fetchAll();
         $out = array_map('mapProduct', $rows);
         jsonResponse($out);
-    }*/
-    if ($method === 'GET' && !$id) {
-        // Chemin vers votre fichier JSON contenant les 52 plats
-        $jsonFile = __DIR__ . '/../path/to/products.json'; // Adaptez le chemin selon l'emplacement de votre fichier
-        if (file_exists($jsonFile)) {
-            $data = json_decode(file_get_contents($jsonFile), true);
-            jsonResponse($data);
-        } else {
-            // Fallback si le fichier n'est pas trouvé
-            jsonResponse([]);
-        }
     }
-
     if ($method === 'POST' && !$id) {
         $admin = requireRole('admin');
         $id = uuid();
