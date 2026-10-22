@@ -6,7 +6,7 @@
 //
 // IMPORTANT : cette ligne doit être la TOUTE PREMIÈRE chose exécutée dans ce
 // fichier. Aucune requête SQL, aucune donnée ne doit être accessible avant
-// cette vérification. C'est ÇA la vraie barrière de sécurité — pas le JS.
+// cette vérification. C'est ÇA la vraie barrière de sécurité - pas le JS.
 $user = require_role('superviseur');
 
 $action = $sub[0] ?? '';

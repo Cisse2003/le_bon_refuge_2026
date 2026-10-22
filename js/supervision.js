@@ -33,10 +33,10 @@ function showLogDetails(log) {
     }
     details = details || {};
 
-    const cmd = details.commande || details.orderId || '—';
-    const champ = details.champ || '—';
-    const oldVal = details.ancienne_valeur ?? details.ancienneValeur ?? '—';
-    const newVal = details.nouvelle_valeur ?? details.nouvelleValeur ?? '—';
+    const cmd = details.commande || details.orderId || '-';
+    const champ = details.champ || '-';
+    const oldVal = details.ancienne_valeur ?? details.ancienneValeur ?? '-';
+    const newVal = details.nouvelle_valeur ?? details.nouvelleValeur ?? '-';
 
     modalBody.innerHTML = `
         <div style="color: #111; font-family: sans-serif;">
@@ -58,7 +58,7 @@ function showLogDetails(log) {
 
 function formatDetailsHTML(details) {
     if (!details || (typeof details === 'object' && Object.keys(details).length === 0)) {
-        return '<span class="detail-empty">—</span>';
+        return '<span class="detail-empty">-</span>';
     }
 
     if (typeof details === 'string') {
@@ -160,7 +160,7 @@ async function loadLiveStream() {
         div.style.cursor = 'pointer';
         div.innerHTML = `
             <span class="heure">${escapeHtml(log.created_at)}</span>
-            <strong>${escapeHtml(log.username)}</strong> (${escapeHtml(log.role)}) — ${escapeHtml(log.action)}
+            <strong>${escapeHtml(log.username)}</strong> (${escapeHtml(log.role)}) - ${escapeHtml(log.action)}
             <span style="color:var(--text-dim);"> · ${escapeHtml(log.module)}</span>
         `;
         div.addEventListener('click', () => showLogDetails(log));
