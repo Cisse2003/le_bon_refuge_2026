@@ -6,6 +6,14 @@
   <title>Le Bon Refuge - Le goût qui vous accueille</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" type="image/x-icon" href="/images/logo.jpg">
+  <style>
+    /* Sécurité pour forcer l'affichage des modales si le CSS global bloque */
+    .modal-overlay.open {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -137,7 +145,7 @@
   </div>
 </section>
 
-<!-- NOUVELLE SECTION : AVIS CLIENTS -->
+<!-- SECTION : AVIS CLIENTS -->
 <section class="section" id="avis">
   <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
@@ -150,7 +158,6 @@
 
     <!-- Grille des avis clients -->
     <div class="menu-grid" id="listeAvisClients">
-      <!-- Avis par défaut 1 -->
       <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
         <div>
           <div style="color: #f39c12; font-size: 1.1rem; margin-bottom: 0.5rem;">★★★★★</div>
@@ -161,7 +168,6 @@
         </div>
       </div>
 
-      <!-- Avis par défaut 2 -->
       <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
         <div>
           <div style="color: #f39c12; font-size: 1.1rem; margin-bottom: 0.5rem;">★★★★★</div>
@@ -172,7 +178,6 @@
         </div>
       </div>
 
-      <!-- Avis par défaut 3 -->
       <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
         <div>
           <div style="color: #f39c12; font-size: 1.1rem; margin-bottom: 0.5rem;">★★★★☆</div>
@@ -383,7 +388,7 @@
       });
     }
 
-    // 2. Gestion propre de la modale des avis
+    // 2. Gestion de la modale des avis
     const modalAvis = document.getElementById('modalAvis');
     const btnOuvrirModalAvis = document.getElementById('btnOuvrirModalAvis');
     const formAvis = document.getElementById('formAvis');
@@ -396,7 +401,7 @@
       });
     }
 
-    // Fermeture universelle des modales (croix ✕ ou boutons de fermeture)
+    // Fermeture universelle des modales
     document.querySelectorAll('[data-close-modal], .modal-close').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -404,7 +409,6 @@
       });
     });
 
-    // Fermeture en cliquant en dehors de la modale
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay) {
@@ -422,10 +426,8 @@
         const note = parseInt(formData.get('note'));
         const commentaire = formData.get('commentaire');
 
-        // Génération des étoiles graphiques
         let etoiles = '★'.repeat(note) + '☆'.repeat(5 - note);
 
-        // Création de la carte d'avis dynamiquement
         const nouvelleCarte = document.createElement('div');
         nouvelleCarte.className = 'card';
         nouvelleCarte.style.cssText = 'display:flex; flex-direction:column; justify-content:space-between;';
@@ -439,12 +441,10 @@
           </div>
         `;
 
-        // Ajout en haut de la liste
         if (listeAvisClients) {
           listeAvisClients.prepend(nouvelleCarte);
         }
 
-        // Fermeture de la modale et réinitialisation
         modalAvis.classList.remove('open');
         formAvis.reset();
         alert('Merci ! Votre avis a bien été publié.');
@@ -452,7 +452,6 @@
     }
   });
 
-  // Fonction de sécurité pour échapper le HTML
   function escapeHtml(text) {
     if (!text) return '';
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
