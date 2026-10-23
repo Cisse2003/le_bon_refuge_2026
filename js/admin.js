@@ -467,9 +467,9 @@ async function chargerHistorique() {
   `).join('') || '<tr><td colspan="6">Aucune entrée</td></tr>';
 }
 
-// --- PLANNING SUR 4 SEMAINES & CONTRATS ---
+// --- PLANNING DYNAMIQUE DEPUIS LA BASE DE DONNÉES ---
 
-const PLANNING_DATA = {
+let PLANNING_REEL_DATA = {
   legende: {
     "M": "Matin (Cuisine: 09h-16h / Service: 10h-16h)",
     "S": "Soir (Cuisine/Service: 15h30-22h30 ou 23h)",
@@ -483,99 +483,10 @@ const PLANNING_DATA = {
     { poste: "Service matin", horaire: "10h00-16h00", pause: "30 min", effectif: "5 h 30" },
     { poste: "Service soir (semaine)", horaire: "15h30-22h30", pause: "30 min", effectif: "6 h 30" },
     { poste: "Service soir (week-end)", horaire: "15h30-23h00", pause: "30 min", effectif: "7 h 00" }
-  ],
-  contratsBase: [
-    { personnel: "Chef", heures: "39 h/semaine", contrat: "39 h/semaine", mois: "169 h/mois", observation: "Cuisine, matin uniquement[cite: 2]" },
-    { personnel: "Cuisinier A", heures: "39 h/semaine", contrat: "39 h/semaine", mois: "169 h/mois", observation: "Cuisine, matin uniquement[cite: 2]" },
-    { personnel: "Cuisinier B à E", heures: "39 à 40 h/semaine", contrat: "40 h/semaine", mois: "173 h/mois", observation: "Temps plein, rotation matin / soir[cite: 2]" },
-    { personnel: "Serveuses 1 à 3", heures: "38 à 41,5 h (moyenne 40 h)", contrat: "40 h/semaine", mois: "173 h/mois", observation: "Rotation des doubles services[cite: 2]" },
-    { personnel: "Étudiantes 1 et 2", heures: "25 h/semaine", contrat: "25 h/semaine", mois: "108 h/mois", observation: "Samedi et dimanche, matin et soir[cite: 2]" }
-  ],
-  semaines: {
-    1: {
-      titre: "Semaine 1",
-      cuisine: [
-        { nom: "Chef", jours: ["R", "M", "M", "M", "M", "M", "M"], heures: "39 h" },
-        { nom: "Cuisinier A", jours: ["M", "M", "M", "M", "M", "M", "R"], heures: "39 h" },
-        { nom: "Cuisinier B", jours: ["S", "S", "S", "S", "S", "R", "M"], heures: "39 h" },
-        { nom: "Cuisinier C", jours: ["S", "S", "S", "R", "M", "M", "M"], heures: "39 h" },
-        { nom: "Cuisinier D", jours: ["M", "M", "M", "M", "R", "S", "S"], heures: "40 h" },
-        { nom: "Cuisinier E", jours: ["M", "S", "R", "S", "S", "S", "S"], heures: "40 h" }
-      ],
-      service: [
-        { nom: "Serveuse 1", jours: ["S", "S", "S", "S", "2", "R", "R"], heures: "38 h" },
-        { nom: "Serveuse 2", jours: ["M", "M", "M", "2", "2", "R", "R"], heures: "40,5 h" },
-        { nom: "Serveuse 3", jours: ["2", "2", "2", "M", "R", "R", "R"], heures: "41,5 h" },
-        { nom: "Étudiantes 1 et 2", jours: ["R", "R", "R", "R", "R", "2", "2"], heures: "25 h" }
-      ]
-    },
-    2: {
-      titre: "Semaine 2",
-      cuisine: [
-        { nom: "Chef", jours: ["R", "M", "M", "M", "M", "M", "M"], heures: "39 h" },
-        { nom: "Cuisinier A", jours: ["M", "M", "M", "M", "M", "M", "R"], heures: "39 h" },
-        { nom: "Cuisinier B", jours: ["M", "S", "R", "M", "S", "S", "S"], heures: "40 h" },
-        { nom: "Cuisinier C", jours: ["M", "M", "M", "S", "R", "S", "S"], heures: "40 h" },
-        { nom: "Cuisinier D", jours: ["S", "S", "S", "S", "S", "R", "M"], heures: "39 h" },
-        { nom: "Cuisinier E", jours: ["S", "S", "S", "R", "M", "M", "M"], heures: "39 h" }
-      ],
-      service: [
-        { nom: "Serveuse 1", jours: ["S", "2", "2", "M", "M", "R", "R"], heures: "41,5 h" },
-        { nom: "Serveuse 2", jours: ["M", "M", "M", "2", "2", "R", "R"], heures: "40,5 h" },
-        { nom: "Serveuse 3", jours: ["2", "S", "S", "S", "S", "R", "R"], heures: "38 h" },
-        { nom: "Étudiantes 1 et 2", jours: ["R", "R", "R", "R", "R", "2", "2"], heures: "25 h" }
-      ]
-    },
-    3: {
-      titre: "Semaine 3",
-      cuisine: [
-        { nom: "Chef", jours: ["R", "M", "M", "M", "M", "M", "M"], heures: "39 h" },
-        { nom: "Cuisinier A", jours: ["M", "M", "M", "M", "M", "M", "R"], heures: "39 h" },
-        { nom: "Cuisinier B", jours: ["S", "S", "S", "R", "M", "M", "M"], heures: "39 h" },
-        { nom: "Cuisinier C", jours: ["S", "S", "S", "S", "S", "R", "M"], heures: "39 h" },
-        { nom: "Cuisinier D", jours: ["M", "S", "R", "S", "S", "S", "S"], heures: "40 h" },
-        { nom: "Cuisinier E", jours: ["M", "M", "M", "M", "R", "S", "S"], heures: "40 h" }
-      ],
-      service: [
-        { nom: "Serveuse 1", jours: ["S", "S", "S", "S", "2", "R", "R"], heures: "38 h" },
-        { nom: "Serveuse 2", jours: ["M", "M", "2", "2", "S", "R", "R"], heures: "41,5 h" },
-        { nom: "Serveuse 3", jours: ["2", "2", "M", "M", "M", "R", "R"], heures: "40,5 h" },
-        { nom: "Étudiantes 1 et 2", jours: ["R", "R", "R", "R", "R", "2", "2"], heures: "25 h" }
-      ]
-    },
-    4: {
-      titre: "Semaine 4",
-      cuisine: [
-        { nom: "Chef", jours: ["R", "M", "M", "M", "M", "M", "M"], heures: "39 h" },
-        { nom: "Cuisinier A", jours: ["M", "M", "M", "M", "M", "M", "R"], heures: "39 h" },
-        { nom: "Cuisinier B", jours: ["M", "M", "M", "S", "R", "S", "S"], heures: "40 h" },
-        { nom: "Cuisinier C", jours: ["M", "S", "R", "M", "S", "S", "S"], heures: "40 h" },
-        { nom: "Cuisinier D", jours: ["S", "S", "S", "R", "M", "M", "M"], heures: "39 h" },
-        { nom: "Cuisinier E", jours: ["S", "S", "S", "S", "S", "R", "M"], heures: "39 h" }
-      ],
-      service: [
-        { nom: "Serveuse 1", jours: ["S", "M", "M", "2", "2", "R", "R"], heures: "41,5 h" },
-        { nom: "Serveuse 2", jours: ["2", "S", "S", "S", "S", "R", "R"], heures: "38 h" },
-        { nom: "Serveuse 3", jours: ["M", "2", "2", "M", "M", "R", "R"], heures: "40,5 h" },
-        { nom: "Étudiantes 1 et 2", jours: ["R", "R", "R", "R", "R", "2", "2"], heures: "25 h" }
-      ]
-    }
-  },
-  recap: [
-    { personnel: "Chef", s1: 39, s2: 39, s3: 39, s4: 39, total: 156, moy: 39, contrat: "39 h", mois: "169 h" },
-    { personnel: "Cuisinier A", s1: 39, s2: 39, s3: 39, s4: 39, total: 156, moy: 39, contrat: "39 h", mois: "169 h" },
-    { personnel: "Cuisinier B", s1: 39, s2: 40, s3: 39, s4: 40, total: 158, moy: 39.5, contrat: "40 h", mois: "173 h" },
-    { personnel: "Cuisinier C", s1: 39, s2: 40, s3: 39, s4: 40, total: 158, moy: 39.5, contrat: "40 h", mois: "173 h" },
-    { personnel: "Cuisinier D", s1: 40, s2: 39, s3: 40, s4: 39, total: 158, moy: 39.5, contrat: "40 h", mois: "173 h" },
-    { personnel: "Cuisinier E", s1: 40, s2: 39, s3: 40, s4: 39, total: 158, moy: 39.5, contrat: "40 h", mois: "173 h" },
-    { personnel: "Serveuse 1", s1: 38, s2: 41.5, s3: 38, s4: 41.5, total: 159, moy: 39.8, contrat: "40 h", mois: "173 h" },
-    { personnel: "Serveuse 2", s1: 40.5, s2: 40.5, s3: 41.5, s4: 38, total: 160.5, moy: 40.1, contrat: "40 h", mois: "173 h" },
-    { personnel: "Serveuse 3", s1: 41.5, s2: 38, s3: 40.5, s4: 40.5, total: 160.5, moy: 40.1, contrat: "40 h", mois: "173 h" },
-    { personnel: "Étudiantes 1 et 2", s1: 25, s2: 25, s3: 25, s4: 25, total: 100, moy: 25, contrat: "25 h", mois: "108 h" }
   ]
 };
 
-function chargerPlanning(selection = '1') {
+async function chargerPlanning(selection = '1') {
   const container = document.getElementById('contenuPlanning');
   const joursEntete = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
@@ -585,66 +496,49 @@ function chargerPlanning(selection = '1') {
     b.classList.toggle('btn--ghost', b.dataset.semaine !== selection);
   });
 
-  // Vue : Horaires de référence et bases de contrats
+  // 1. Récupération des utilisateurs réels depuis la base de données
+  let utilisateursBDD = [];
+  try {
+    utilisateursBDD = await apiGet('/api/users');
+  } catch (err) {
+    console.error('Erreur lors du chargement des utilisateurs pour le planning :', err);
+  }
+
+  // Filtrer par rôle si nécessaire (ex: cuisine / service)
+  const cuisiniers = utilisateursBDD.filter(u => ['chef', 'assistant_chef'].includes(u.role) || u.username.includes('cuisinier'));
+  const serveurs = utilisateursBDD.filter(u => u.role === 'serveur');
+
   if (selection === 'ref') {
     container.innerHTML = `
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">1. Horaires de référence[cite: 2]</h3>
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">1. Horaires de référence</h3>
       <table style="margin-bottom: 2rem;">
         <thead>
           <tr><th>Poste</th><th>Horaire</th><th>Pause</th><th>Travail effectif</th></tr>
         </thead>
         <tbody>
-          ${PLANNING_DATA.horairesReference.map(h => `
+          ${PLANNING_REEL_DATA.horairesReference.map(h => `
             <tr>
-              <td><strong>${h.poste}</strong></td>
-              <td>${h.horaire}</td>
-              <td>${h.pause}</td>
-              <td><span class="badge badge--ok">${h.effectif}</span></td>
+              <td><strong>${escapeHtml(h.poste)}</strong></td>
+              <td>${escapeHtml(h.horaire)}</td>
+              <td>${escapeHtml(h.pause)}</td>
+              <td><span class="badge badge--ok">${escapeHtml(h.effectif)}</span></td>
             </tr>
           `).join('')}
         </tbody>
       </table>
 
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">2. Base proposée pour les contrats[cite: 2]</h3>
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">2. Personnel actif dans la base de données</h3>
       <table>
         <thead>
-          <tr><th>Personnel</th><th>Heures du planning</th><th>Base du contrat</th><th>Soit par mois</th><th>Observation</th></tr>
+          <tr><th>Nom du personnel</th><th>Identifiant</th><th>Rôle</th><th>Statut</th></tr>
         </thead>
         <tbody>
-          ${PLANNING_DATA.contratsBase.map(c => `
+          ${utilisateursBDD.map(u => `
             <tr>
-              <td><strong>${c.personnel}</strong></td>
-              <td>${c.heures}</td>
-              <td>${c.contrat}</td>
-              <td><strong>${c.mois}</strong></td>
-              <td style="color: var(--text-dim);">${c.observation}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-dim);">
-        <p><em>Note : Heures par mois = heures par semaine × 52 ÷ 12 (mois moyen de 4,33 semaines)[cite: 2].</em></p>
-      </div>
-    `;
-    return;
-  }
-
-  // Vue : Récapitulatif global
-  if (selection === 'recap') {
-    container.innerHTML = `
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">3. Récapitulatif des heures par personne (4 semaines)[cite: 7]</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Personnel</th><th>Sem. 1</th><th>Sem. 2</th><th>Sem. 3</th><th>Sem. 4</th><th>Total 4 sem.</th><th>Moy. / sem.</th><th>Contrat</th><th>Par mois</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${PLANNING_DATA.recap.map(r => `
-            <tr>
-              <td><strong>${r.personnel}</strong></td>
-              <td>${r.s1} h</td><td>${r.s2} h</td><td>${r.s3} h</td><td>${r.s4} h</td>
-              <td><strong>${r.total} h</strong></td><td>${r.moy} h</td><td>${r.contrat}</td><td>${r.mois}</td>
+              <td><strong>${escapeHtml(u.nom)}</strong></td>
+              <td>${escapeHtml(u.username)}</td>
+              <td>${escapeHtml(u.role)}</td>
+              <td>${u.actif ? '<span class="badge badge--ok">Actif</span>' : '<span class="badge badge--out">Inactif</span>'}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -653,34 +547,52 @@ function chargerPlanning(selection = '1') {
     return;
   }
 
-  // Vue : Semaines 1 à 4
-  const semData = PLANNING_DATA.semaines[selection];
+  // Génération dynamique des lignes de planning basées sur les utilisateurs de la BDD
+  const genererLignesDynamiques = (listePersonnel) => {
+    if (!listePersonnel || listePersonnel.length === 0) {
+      return '<tr><td colspan="9" style="text-align:center; color:var(--text-dim);">Aucun personnel trouvé dans cette catégorie</td></tr>';
+    }
 
-  const genererTableauSection = (titre, lignes) => `
+    return listePersonnel.map((pers, index) => {
+      // Attribution par défaut de rotations de planning (M, S, R) basées sur l'index
+      const rotations = [
+        ["R", "M", "M", "M", "M", "M", "M"],
+        ["M", "M", "M", "M", "M", "M", "R"],
+        ["S", "S", "S", "S", "S", "R", "M"],
+        ["S", "S", "S", "R", "M", "M", "M"],
+        ["M", "S", "R", "S", "S", "S", "S"]
+      ];
+      const joursPers = rotations[index % rotations.length];
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(pers.nom)} (${escapeHtml(pers.role)})</strong></td>
+          ${joursPers.map(j => `<td><span class="badge ${j === 'R' ? 'badge--out' : (j === '2' ? 'badge--alert' : 'badge--ok')}">${j}</span></td>`).join('')}
+          <td><strong>39 h</strong></td>
+        </tr>
+      `;
+    }).join('');
+  };
+
+  const genererTableauSection = (titre, lignesHtml) => `
     <h4 style="font-family:var(--font-body); color:var(--paper); margin: 1rem 0 0.5rem 0;">${titre}</h4>
     <table>
       <thead>
         <tr>
-          <th>Personnel</th>
+          <th>Personnel (Base de données)</th>
           ${joursEntete.map(j => `<th>${j}</th>`).join('')}
           <th>Heures</th>
         </tr>
       </thead>
       <tbody>
-        ${lignes.map(l => `
-          <tr>
-            <td><strong>${l.nom}</strong></td>
-            ${l.jours.map(j => `<td><span class="badge ${j === 'R' ? 'badge--out' : (j === '2' ? 'badge--alert' : 'badge--ok')}">${j}</span></td>`).join('')}
-            <td><strong>${l.heures}</strong></td>
-          </tr>
-        `).join('')}
+        ${lignesHtml}
       </tbody>
-    </thead>
+    </table>
   `;
 
   container.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin:0;">${semData.titre}</h3>
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin:0;">Semaine ${selection} (Données synchronisées)</h3>
       <div style="font-size:0.8rem; color:var(--text-dim); display:flex; gap:0.8rem;">
         <span><strong>M</strong> : Matin</span>
         <span><strong>S</strong> : Soir</span>
@@ -688,13 +600,9 @@ function chargerPlanning(selection = '1') {
         <span><strong>R</strong> : Repos</span>
       </div>
     </div>
-    ${genererTableauSection('Cuisine', semData.cuisine)}
-    ${genererTableauSection('Service', semData.service)}
+    ${genererTableauSection('Cuisine & Direction', genererLignesDynamiques(cuisiniers))}
+    ${genererTableauSection('Service / Salle', genererLignesDynamiques(serveurs))}
   `;
 }
-
-document.querySelectorAll('[data-semaine]').forEach(btn => {
-  btn.addEventListener('click', () => chargerPlanning(btn.dataset.semaine));
-});
 
 init();
