@@ -496,7 +496,7 @@ async function chargerPlanning(selection = '1') {
     b.classList.toggle('btn--ghost', b.dataset.semaine !== selection);
   });
 
-  // 1. Récupération des utilisateurs réels depuis la base de données
+  // Récupération des utilisateurs depuis la base de données
   let utilisateursBDD = [];
   try {
     utilisateursBDD = await apiGet('/api/users');
@@ -504,9 +504,9 @@ async function chargerPlanning(selection = '1') {
     console.error('Erreur lors du chargement des utilisateurs pour le planning :', err);
   }
 
-  // Filtrer par rôle si nécessaire (ex: cuisine / service)
-  const cuisiniers = utilisateursBDD.filter(u => ['chef', 'assistant_chef'].includes(u.role) || u.username.includes('cuisinier'));
-  const serveurs = utilisateursBDD.filter(u => u.role === 'serveur');
+  // Répartition de tout le personnel actif
+  const equipeCuisine = utilisateursBDD.filter(u => ['admin', 'chef', 'assistant_chef'].includes(u.role));
+  const equipeSalle = utilisateursBDD.filter(u => u.role === 'serveur');
 
   if (selection === 'ref') {
     container.innerHTML = `
@@ -547,26 +547,25 @@ async function chargerPlanning(selection = '1') {
     return;
   }
 
-  // Génération dynamique des lignes de planning basées sur les utilisateurs de la BDD
+  // Générateur de lignes sécurisé
   const genererLignesDynamiques = (listePersonnel) => {
     if (!listePersonnel || listePersonnel.length === 0) {
-      return '<tr><td colspan="9" style="text-align:center; color:var(--text-dim);">Aucun personnel trouvé dans cette catégorie</td></tr>';
+      return '<tr><td colspan="9" style="text-align:center; color:var(--text-dim);">Aucun personnel dans cette catégorie</td></tr>';
     }
 
-    return listePersonnel.map((pers, index) => {
-      // Attribution par défaut de rotations de planning (M, S, R) basées sur l'index
-      const rotations = [
-        ["R", "M", "M", "M", "M", "M", "M"],
-        ["M", "M", "M", "M", "M", "M", "R"],
-        ["S", "S", "S", "S", "S", "R", "M"],
-        ["S", "S", "S", "R", "M", "M", "M"],
-        ["M", "S", "R", "S", "S", "S", "S"]
-      ];
-      const joursPers = rotations[index % rotations.length];
+    const rotations = [
+      ["R", "M", "M", "M", "M", "M", "M"],
+      ["M", "M", "M", "M", "M", "M", "R"],
+      ["S", "S", "S", "S", "S", "R", "M"],
+      ["S", "S", "S", "R", "M", "M", "M"],
+      ["M", "S", "R", "S", "S", "S", "S"]
+    ];
 
+    return listePersonnel.map((pers, index) => {
+      const joursPers = rotations[index % rotations.length];
       return `
         <tr>
-          <td><strong>${escapeHtml(pers.nom)} (${escapeHtml(pers.role)})</strong></td>
+          <td><strong>${escapeHtml(pers.nom)} <small style="color:var(--text-dim);">(${escapeHtml(pers.role)})</small></strong></td>
           ${joursPers.map(j => `<td><span class="badge ${j === 'R' ? 'badge--out' : (j === '2' ? 'badge--alert' : 'badge--ok')}">${j}</span></td>`).join('')}
           <td><strong>39 h</strong></td>
         </tr>
@@ -600,8 +599,8 @@ async function chargerPlanning(selection = '1') {
         <span><strong>R</strong> : Repos</span>
       </div>
     </div>
-    ${genererTableauSection('Cuisine & Direction', genererLignesDynamiques(cuisiniers))}
-    ${genererTableauSection('Service / Salle', genererLignesDynamiques(serveurs))}
+    ${genererTableauSection('Direction & Cuisine', genererLignesDynamiques(equipeCuisine))}
+    ${genererTableauSection('Service / Salle', genererLignesDynamiques(equipeSalle))}
   `;
 }
 
