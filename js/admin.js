@@ -467,9 +467,8 @@ async function chargerHistorique() {
   `).join('') || '<tr><td colspan="6">Aucune entrée</td></tr>';
 }
 
-// --- PLANNING SUR 4 SEMAINES ---
+// --- PLANNING SUR 4 SEMAINES & CONTRATS ---
 
-// Données structurées issues du planning officiel du Bon Refuge
 const PLANNING_DATA = {
   legende: {
     "M": "Matin (Cuisine: 09h-16h / Service: 10h-16h)",
@@ -477,6 +476,21 @@ const PLANNING_DATA = {
     "2": "Double service (matin + soir)",
     "R": "Repos"
   },
+  horairesReference: [
+    { poste: "Cuisine matin", horaire: "09h00-16h00", pause: "30 min", effectif: "6 h 30" },
+    { poste: "Cuisine soir (semaine)", horaire: "15h30-22h30", pause: "30 min", effectif: "6 h 30" },
+    { poste: "Cuisine soir (week-end)", horaire: "15h30-23h00", pause: "30 min", effectif: "7 h 00" },
+    { poste: "Service matin", horaire: "10h00-16h00", pause: "30 min", effectif: "5 h 30" },
+    { poste: "Service soir (semaine)", horaire: "15h30-22h30", pause: "30 min", effectif: "6 h 30" },
+    { poste: "Service soir (week-end)", horaire: "15h30-23h00", pause: "30 min", effectif: "7 h 00" }
+  ],
+  contratsBase: [
+    { personnel: "Chef", heures: "39 h/semaine", contrat: "39 h/semaine", mois: "169 h/mois", observation: "Cuisine, matin uniquement[cite: 2]" },
+    { personnel: "Cuisinier A", heures: "39 h/semaine", contrat: "39 h/semaine", mois: "169 h/mois", observation: "Cuisine, matin uniquement[cite: 2]" },
+    { personnel: "Cuisinier B à E", heures: "39 à 40 h/semaine", contrat: "40 h/semaine", mois: "173 h/mois", observation: "Temps plein, rotation matin / soir[cite: 2]" },
+    { personnel: "Serveuses 1 à 3", heures: "38 à 41,5 h (moyenne 40 h)", contrat: "40 h/semaine", mois: "173 h/mois", observation: "Rotation des doubles services[cite: 2]" },
+    { personnel: "Étudiantes 1 et 2", heures: "25 h/semaine", contrat: "25 h/semaine", mois: "108 h/mois", observation: "Samedi et dimanche, matin et soir[cite: 2]" }
+  ],
   semaines: {
     1: {
       titre: "Semaine 1",
@@ -565,16 +579,60 @@ function chargerPlanning(selection = '1') {
   const container = document.getElementById('contenuPlanning');
   const joursEntete = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
-  // Gestion de la mise en valeur des boutons de sélection de semaine
   document.querySelectorAll('[data-semaine]').forEach(b => {
     b.classList.toggle('active', b.dataset.semaine === selection);
     b.classList.toggle('btn--dark', b.dataset.semaine === selection);
     b.classList.toggle('btn--ghost', b.dataset.semaine !== selection);
   });
 
+  // Vue : Horaires de référence et bases de contrats
+  if (selection === 'ref') {
+    container.innerHTML = `
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">1. Horaires de référence[cite: 2]</h3>
+      <table style="margin-bottom: 2rem;">
+        <thead>
+          <tr><th>Poste</th><th>Horaire</th><th>Pause</th><th>Travail effectif</th></tr>
+        </thead>
+        <tbody>
+          ${PLANNING_DATA.horairesReference.map(h => `
+            <tr>
+              <td><strong>${h.poste}</strong></td>
+              <td>${h.horaire}</td>
+              <td>${h.pause}</td>
+              <td><span class="badge badge--ok">${h.effectif}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">2. Base proposée pour les contrats[cite: 2]</h3>
+      <table>
+        <thead>
+          <tr><th>Personnel</th><th>Heures du planning</th><th>Base du contrat</th><th>Soit par mois</th><th>Observation</th></tr>
+        </thead>
+        <tbody>
+          ${PLANNING_DATA.contratsBase.map(c => `
+            <tr>
+              <td><strong>${c.personnel}</strong></td>
+              <td>${c.heures}</td>
+              <td>${c.contrat}</td>
+              <td><strong>${c.mois}</strong></td>
+              <td style="color: var(--text-dim);">${c.observation}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-dim);">
+        <p><em>Note : Heures par mois = heures par semaine × 52 ÷ 12 (mois moyen de 4,33 semaines)[cite: 2].</em></p>
+      </div>
+    `;
+    return;
+  }
+
+  // Vue : Récapitulatif global
   if (selection === 'recap') {
     container.innerHTML = `
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">Récapitulatif des heures sur 4 semaines[cite: 7]</h3>
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">3. Récapitulatif des heures par personne (4 semaines)[cite: 7]</h3>
       <table>
         <thead>
           <tr>
@@ -591,13 +649,11 @@ function chargerPlanning(selection = '1') {
           `).join('')}
         </tbody>
       </table>
-      <div style="margin-top: 1.5rem; background: var(--bg-raised-2); padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-dim);">
-        <p><strong>Rappel des bases de contrats :</strong> Heures par mois = heures par semaine × 52 ÷ 12 (mois moyen de 4,33 semaines)[cite: 2].</p>
-      </div>
     `;
     return;
   }
 
+  // Vue : Semaines 1 à 4
   const semData = PLANNING_DATA.semaines[selection];
 
   const genererTableauSection = (titre, lignes) => `
@@ -619,7 +675,7 @@ function chargerPlanning(selection = '1') {
           </tr>
         `).join('')}
       </tbody>
-    </table>
+    </thead>
   `;
 
   container.innerHTML = `
@@ -637,7 +693,6 @@ function chargerPlanning(selection = '1') {
   `;
 }
 
-// Écouteur d'événements pour les boutons de sélection de semaine dans l'initialisation de l'admin
 document.querySelectorAll('[data-semaine]').forEach(btn => {
   btn.addEventListener('click', () => chargerPlanning(btn.dataset.semaine));
 });
