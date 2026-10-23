@@ -28,6 +28,7 @@
         <li><a href="#menu">Menu</a></li>
         <li><a href="#reservation">Réservation</a></li>
         <li><a href="#gateaux">Gâteaux</a></li>
+        <li><a href="#avis">Avis</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
     </nav>
@@ -82,12 +83,12 @@
     <div style="margin-top: 3rem; display: flex; flex-direction: column; gap: 2rem; align-items: center;">
       <div style="width: 100%; max-width: 900px;">
         <h3 style="color: var(--paper); margin-bottom: 1rem; text-align: center; font-family: var(--font-body);">1. Plats, Fast-food, Pizzas & Gâteaux</h3>
-        <img src="/images/menu_plats.png" alt="Menu Le Bon Refuge - Plats et Spécialités" style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <img src="/images/menu-plats.png" alt="Menu Le Bon Refuge - Plats et Spécialités" style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
       </div>
 
       <div style="width: 100%; max-width: 900px; margin-top: 2rem;">
         <h3 style="color: var(--paper); margin-bottom: 1rem; text-align: center; font-family: var(--font-body);">2. Boissons & Jus</h3>
-        <img src="/images/menu_boissons.png" alt="Menu Le Bon Refuge - Boissons" style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <img src="/images/menu-boissons.png" alt="Menu Le Bon Refuge - Boissons" style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
       </div>
     </div>
   </div>
@@ -132,6 +133,55 @@
       <h3 style="font-family:var(--font-body); color:var(--paper);">Comment ça marche</h3>
       <p>Votre demande est envoyée directement à l'équipe. Vous recevrez une confirmation par téléphone. Pour toute urgence, contactez-nous directement sur WhatsApp.</p>
       <a id="lienWhatsappReservation" href="https://wa.me/224629631082?text=Bonjour%20Le%20Bon%20Refuge,%20je%20souhaite%20r%C3%A9server%20une%20table." target="_blank" class="btn btn--whatsapp btn--block">💬 Réserver via WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<!-- NOUVELLE SECTION : AVIS CLIENTS -->
+<section class="section" id="avis">
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+      <div>
+        <p class="eyebrow">Témoignages</p>
+        <h2>Ce que disent nos clients</h2>
+      </div>
+      <button class="btn" id="btnOuvrirModalAvis" type="button">⭐ Laisser un avis</button>
+    </div>
+
+    <!-- Grille des avis clients -->
+    <div class="menu-grid" id="listeAvisClients">
+      <!-- Avis par défaut 1 -->
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="color: #f39c12; font-size: 1.1rem; margin-bottom: 0.5rem;">★★★★★</div>
+          <p style="font-style: italic; margin-bottom: 1rem;">« Les tacos et le poulet braisé sont juste incroyables ! Le service est rapide et l'ambiance au top près du campus. Je recommande à 100%. »</p>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--paper-muted); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.8rem;">
+          <strong>Mamadou S.</strong> — Étudiant
+        </div>
+      </div>
+
+      <!-- Avis par défaut 2 -->
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="color: #f39c12; font-size: 1.1rem; margin-bottom: 0.5rem;">★★★★★</div>
+          <p style="font-style: italic; margin-bottom: 1rem;">« Excellent rapport qualité/prix. Leurs pizzas et la crèmerie font l'unanimité avec mes amis. Super accueil ! »</p>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--paper-muted); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.8rem;">
+          <strong>Fatoumata B.</strong>
+        </div>
+      </div>
+
+      <!-- Avis par défaut 3 -->
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="color: #f39c12; font-size: 1.1rem; margin-bottom: 0.5rem;">★★★★☆</div>
+          <p style="font-style: italic; margin-bottom: 1rem;">« Super propre, rapide. J'ai commandé un gâteau d'anniversaire personnalisé pour une amie, il était magnifique et délicieux. »</p>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--paper-muted); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.8rem;">
+          <strong>Ibrahim K.</strong>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -194,6 +244,32 @@
     <button class="btn btn--block" id="btnCommander" type="button">Passer commande</button>
   </div>
 </aside>
+
+<!-- Modale Ajout Avis -->
+<div class="modal-overlay" id="modalAvis">
+  <div class="modal">
+    <button class="modal-close" data-close-modal>✕</button>
+    <h3 style="font-family:var(--font-body); color:var(--paper);">Laisser votre avis</h3>
+    <form id="formAvis">
+      <label>Votre nom</label>
+      <input type="text" name="nom" placeholder="Ex : Alpha Diallo" required>
+
+      <label>Note (de 1 à 5 étoiles)</label>
+      <select name="note" required>
+        <option value="5">★★★★★ (5/5 - Excellent)</option>
+        <option value="4">★★★★☆ (4/5 - Très bien)</option>
+        <option value="3">★★★☆☆ (3/5 - Bien)</option>
+        <option value="2">★★☆☆☆ (2/5 - Moyen)</option>
+        <option value="1">★☆☆☆☆ (1/5 - À améliorer)</option>
+      </select>
+
+      <label>Votre commentaire</label>
+      <textarea name="commentaire" rows="3" placeholder="Qu'avez-vous pensé de vos plats ou du service ?" required></textarea>
+
+      <button class="btn btn--block" type="submit" style="margin-top:1rem;">Publier mon avis</button>
+    </form>
+  </div>
+</div>
 
 <!-- Modale personnalisation gâteau -->
 <div class="modal-overlay" id="modalGateau">
@@ -283,7 +359,7 @@
 <script src="/js/api.js?v=13"></script>
 <script src="/js/site.js?v=13"></script>
 
-<!-- Script pour le fonctionnement du menu burger -->
+<!-- Script de gestion du menu burger et de la modale d'avis -->
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const menuToggle = document.getElementById('menuToggle');
@@ -297,7 +373,6 @@
         menuToggle.setAttribute('aria-expanded', isOpen);
       });
 
-      // Ferme le menu lorsqu'un lien est cliqué
       navLinks.forEach(link => {
         link.addEventListener('click', () => {
           navContainer.classList.remove('open');
@@ -306,7 +381,68 @@
         });
       });
     }
+
+    // Gestion de la modale des avis clients
+    const modalAvis = document.getElementById('modalAvis');
+    const btnOuvrirModalAvis = document.getElementById('btnOuvrirModalAvis');
+    const formAvis = document.getElementById('formAvis');
+    const listeAvisClients = document.getElementById('listeAvisClients');
+
+    if (btnOuvrirModalAvis && modalAvis) {
+      btnOuvrirModalAvis.addEventListener('click', () => {
+        modalAvis.classList.add('open');
+      });
+    }
+
+    // Fermeture des modales avec data-close-modal ou clic extérieur
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+      });
+    });
+
+    // Soumission d'un nouvel avis
+    if (formAvis) {
+      formAvis.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(formAvis);
+        const nom = formData.get('nom');
+        const note = parseInt(formData.get('note'));
+        const commentaire = formData.get('commentaire');
+
+        // Génération des étoiles graphiques
+        let etoiles = '★'.repeat(note) + '☆'.repeat(5 - note);
+
+        // Création de la carte d'avis dynamiquement
+        const nouvelleCarte = document.createElement('div');
+        nouvelleCarte.className = 'card';
+        nouvelleCarte.style.cssText = 'display:flex; flex-direction:column; justify-content:space-between;';
+        nouvelleCarte.innerHTML = `
+          <div>
+            <div style="color: #f39c12; font-size: 1.1rem; margin-bottom: 0.5rem;">${etoiles}</div>
+            <p style="font-style: italic; margin-bottom: 1rem;">« ${escapeHtml(commentaire)} »</p>
+          </div>
+          <div style="font-size: 0.85rem; color: var(--paper-muted); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.8rem;">
+            <strong>${escapeHtml(nom)}</strong> (À l'instant)
+          </div>
+        `;
+
+        // Ajout en haut de la liste
+        listeAvisClients.prepend(nouvelleCarte);
+
+        // Fermeture de la modale et réinitialisation du formulaire
+        modalAvis.classList.remove('open');
+        formAvis.reset();
+        alert('Merci ! Votre avis a bien été publié.');
+      });
+    }
   });
+
+  // Petite fonction de sécurité pour échapper le texte HTML
+  function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
 </script>
 </body>
 </html>
