@@ -467,9 +467,9 @@ async function chargerHistorique() {
   `).join('') || '<tr><td colspan="6">Aucune entrée</td></tr>';
 }
 
-// --- PLANNING DYNAMIQUE DEPUIS LA BASE DE DONNÉES ---
+// --- PLANNING SUR 4 SEMAINES DYNAMIQUE DEPUIS LA BDD ---
 
-let PLANNING_REEL_DATA = {
+const PLANNING_REEL_DATA = {
   legende: {
     "M": "Matin (Cuisine: 09h-16h / Service: 10h-16h)",
     "S": "Soir (Cuisine/Service: 15h30-22h30 ou 23h)",
@@ -496,7 +496,7 @@ async function chargerPlanning(selection = '1') {
     b.classList.toggle('btn--ghost', b.dataset.semaine !== selection);
   });
 
-  // Récupération des utilisateurs depuis la base de données
+  // 1. Récupération des utilisateurs réels depuis la base de données
   let utilisateursBDD = [];
   try {
     utilisateursBDD = await apiGet('/api/users');
@@ -504,10 +504,11 @@ async function chargerPlanning(selection = '1') {
     console.error('Erreur lors du chargement des utilisateurs pour le planning :', err);
   }
 
-  // Répartition de tout le personnel actif
-  const equipeCuisine = utilisateursBDD.filter(u => ['admin', 'chef', 'assistant_chef'].includes(u.role));
-  const equipeSalle = utilisateursBDD.filter(u => u.role === 'serveur');
+  const personnelActif = utilisateursBDD.filter(u => u.actif);
+  const equipeCuisine = personnelActif.filter(u => ['admin', 'chef', 'assistant_chef'].includes(u.role));
+  const equipeSalle = personnelActif.filter(u => u.role === 'serveur');
 
+  // Vue : Horaires de référence et bases de contrats
   if (selection === 'ref') {
     container.innerHTML = `
       <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">1. Horaires de référence</h3>
@@ -547,8 +548,32 @@ async function chargerPlanning(selection = '1') {
     return;
   }
 
-  // Générateur de lignes sécurisé
-  const genererLignesDynamiques = (listePersonnel) => {
+  // Vue : Récapitulatif Global
+  if (selection === 'recap') {
+    container.innerHTML = `
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">3. Récapitulatif des heures par personne (4 semaines)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Personnel</th><th>Sem. 1</th><th>Sem. 2</th><th>Sem. 3</th><th>Sem. 4</th><th>Total 4 sem.</th><th>Moy. / sem.</th><th>Contrat</th><th>Par mois</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${personnelActif.map(p => `
+            <tr>
+              <td><strong>${escapeHtml(p.nom)} (${escapeHtml(p.role)})</strong></td>
+              <td>39 h</td><td>39 h</td><td>39 h</td><td>39 h</td>
+              <td><strong>156 h</strong></td><td>39 h</td><td>39 h</td><td>169 h</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    return;
+  }
+
+  // Générateur dynamique de plannings (Semaines 1 à 4) selon les rotations
+  const genererLignesDynamiques = (listePersonnel, decalageSemaine = 0) => {
     if (!listePersonnel || listePersonnel.length === 0) {
       return '<tr><td colspan="9" style="text-align:center; color:var(--text-dim);">Aucun personnel dans cette catégorie</td></tr>';
     }
@@ -562,7 +587,10 @@ async function chargerPlanning(selection = '1') {
     ];
 
     return listePersonnel.map((pers, index) => {
-      const joursPers = rotations[index % rotations.length];
+      // Rotation dynamique en fonction de la semaine sélectionnée pour varier les plannings
+      const rotationIndex = (index + decalageSemaine) % rotations.length;
+      const joursPers = rotations[rotationIndex];
+
       return `
         <tr>
           <td><strong>${escapeHtml(pers.nom)} <small style="color:var(--text-dim);">(${escapeHtml(pers.role)})</small></strong></td>
@@ -589,9 +617,12 @@ async function chargerPlanning(selection = '1') {
     </table>
   `;
 
+  // Décalage de rotation selon le numéro de la semaine (1, 2, 3 ou 4)
+  const numSemaine = parseInt(selection) || 1;
+
   container.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin:0;">Semaine ${selection} (Données synchronisées)</h3>
+      <h3 style="font-family:var(--font-body); color:var(--paper); margin:0;">Semaine ${numSemaine}</h3>
       <div style="font-size:0.8rem; color:var(--text-dim); display:flex; gap:0.8rem;">
         <span><strong>M</strong> : Matin</span>
         <span><strong>S</strong> : Soir</span>
@@ -599,8 +630,8 @@ async function chargerPlanning(selection = '1') {
         <span><strong>R</strong> : Repos</span>
       </div>
     </div>
-    ${genererTableauSection('Direction & Cuisine', genererLignesDynamiques(equipeCuisine))}
-    ${genererTableauSection('Service / Salle', genererLignesDynamiques(equipeSalle))}
+    ${genererTableauSection('Direction & Cuisine', genererLignesDynamiques(equipeCuisine, numSemaine - 1))}
+    ${genererTableauSection('Service / Salle', genererLignesDynamiques(equipeSalle, numSemaine - 1))}
   `;
 }
 
