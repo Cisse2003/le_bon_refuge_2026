@@ -359,9 +359,10 @@
 <script src="/js/api.js?v=13"></script>
 <script src="/js/site.js?v=13"></script>
 
-<!-- Script de gestion du menu burger et de la modale d'avis -->
+<!-- Script de gestion du menu burger et des modales -->
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // 1. Menu Burger mobile
     const menuToggle = document.getElementById('menuToggle');
     const navContainer = document.getElementById('navContainer');
     const navLinks = document.querySelectorAll('.nav-links a');
@@ -382,26 +383,37 @@
       });
     }
 
-    // Gestion de la modale des avis clients
+    // 2. Gestion propre de la modale des avis
     const modalAvis = document.getElementById('modalAvis');
     const btnOuvrirModalAvis = document.getElementById('btnOuvrirModalAvis');
     const formAvis = document.getElementById('formAvis');
     const listeAvisClients = document.getElementById('listeAvisClients');
 
     if (btnOuvrirModalAvis && modalAvis) {
-      btnOuvrirModalAvis.addEventListener('click', () => {
+      btnOuvrirModalAvis.addEventListener('click', function (e) {
+        e.preventDefault();
         modalAvis.classList.add('open');
       });
     }
 
-    // Fermeture des modales avec data-close-modal ou clic extérieur
-    document.querySelectorAll('[data-close-modal]').forEach(btn => {
-      btn.addEventListener('click', () => {
+    // Fermeture universelle des modales (croix ✕ ou boutons de fermeture)
+    document.querySelectorAll('[data-close-modal], .modal-close').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
       });
     });
 
-    // Soumission d'un nouvel avis
+    // Fermeture en cliquant en dehors de la modale
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('open');
+        }
+      });
+    });
+
+    // 3. Soumission d'un nouvel avis
     if (formAvis) {
       formAvis.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -428,9 +440,11 @@
         `;
 
         // Ajout en haut de la liste
-        listeAvisClients.prepend(nouvelleCarte);
+        if (listeAvisClients) {
+          listeAvisClients.prepend(nouvelleCarte);
+        }
 
-        // Fermeture de la modale et réinitialisation du formulaire
+        // Fermeture de la modale et réinitialisation
         modalAvis.classList.remove('open');
         formAvis.reset();
         alert('Merci ! Votre avis a bien été publié.');
@@ -438,8 +452,9 @@
     }
   });
 
-  // Petite fonction de sécurité pour échapper le texte HTML
+  // Fonction de sécurité pour échapper le HTML
   function escapeHtml(text) {
+    if (!text) return '';
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return text.replace(/[&<>"']/g, function(m) { return map[m]; });
   }
