@@ -180,6 +180,13 @@ async function enregistrerProduit(e) {
     let photoUrl = fd.get('photo') || '';
     const fichier = fd.get('photoFile');
 
+    if (fichier && fichier.size > 5 * 1024 * 1024) {
+      throw new Error(
+          `La photo "${fichier.name}" dépasse la limite de 5 Mo. ` +
+          `Réduis sa taille avant de recommencer.`
+      );
+    }
+
     // 1. Envoyer la photo au serveur si un nouveau fichier est sélectionné.
     if (fichier instanceof File && fichier.size > 0) {
       if (!fichier.type.startsWith('image/')) {
