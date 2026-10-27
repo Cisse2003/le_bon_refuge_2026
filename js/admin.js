@@ -164,34 +164,129 @@ function ajouterLigneRecette(ligne) {
 
 async function enregistrerProduit(e) {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  let photoUrl = fd.get('photo') || '';
-  const fichier = fd.get('photoFile');
-  if (fichier && fichier.size > 0) {
-    const uploadFd = new FormData();
-    uploadFd.append('photo', fichier);
-    const up = await fetch('/api/upload', { method: 'POST', body: uploadFd });
-    const upData = await up.json();
-    photoUrl = upData.url || photoUrl;
+
+  const form = e.target;
+  const bouton = form.querySelector('button[type="submit"]');
+
+  if (bouton) {
+    bouton.disabled = true;
+    bouton.textContent = 'Enregistrement...';
   }
-  const recette = Array.from(document.querySelectorAll('#lignesRecette .ligne-recette')).map((div) => ({
-    ingredientId: div.querySelector('.recette-ingredient').value,
-    quantite: parseFloat(div.querySelector('.recette-quantite').value) || 0,
-  })).filter((l) => l.quantite > 0);
-  const payload = {
-    nom: fd.get('nom'), categorie: fd.get('categorie'), description: fd.get('description'),
-    prix: parseFloat(fd.get('prix')), poste: fd.get('poste'),
-    options: fd.get('options') ? fd.get('options').split(',').map((s) => s.trim()).filter(Boolean) : [],
-    photo: photoUrl, disponible: fd.get('disponible') === 'on', recette,
-  };
+
   try {
+    const fd = new FormData(form);
+
+    // Conserver la photo existante lors d'une modification.
+    let photoUrl = fd.get('photo') || '';
+    const fichier = fd.get('photoFile');
+
+    // 1. Envoyer la photo au serveur si un nouveau fichier est sélectionné.
+    if (fichier instanceof File && fichier.size > 0) {
+      if (!fichier.type.startsWith('image/')) {
+        throw new Error('Le fichier sélectionné doit être une image.');
+      }
+
+      const uploadFd = new FormData();
+      uploadFd.append('photo', fichier);
+
+      const reponseUpload = await fetch('/api/upload', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: uploadFd
+      });
+
+      // Lire la réponse même si le serveur renvoie une erreur.
+      const texteUpload = await reponseUpload.text();
+
+      let resultatUpload;
+
+      try {
+        resultatUpload = JSON.parse(texteUpload);
+      } catch {
+        throw new Error(
+            `Le serveur a renvoyé une réponse invalide lors de l'envoi de la photo. ` +
+            `HTTP ${reponseUpload.status}.`
+        );
+      }
+
+      // Ne pas continuer si l'upload a échoué.
+      if (!reponseUpload.ok) {
+        throw new Error(
+            resultatUpload.error ||
+            resultatUpload.message ||
+            `Échec de l'envoi de la photo (HTTP ${reponseUpload.status}).`
+        );
+      }
+
+      if (!resultatUpload.url) {
+        throw new Error(
+            "La photo a été envoyée, mais le serveur n'a pas renvoyé son URL."
+        );
+      }
+
+      photoUrl = resultatUpload.url;
+    }
+
+    // 2. Récupérer la recette du produit.
+    const recette = Array.from(
+        document.querySelectorAll('#lignesRecette .ligne-recette')
+    ).map(div => ({
+      ingredientId: div.querySelector('.recette-ingredient').value,
+      quantite: parseFloat(
+          div.querySelector('.recette-quantite').value
+      ) || 0
+    })).filter(ligne => ligne.quantite > 0);
+
+    // 3. Préparer les données du produit, avec l'URL de la photo.
+    const payload = {
+      nom: fd.get('nom'),
+      categorie: fd.get('categorie'),
+      description: fd.get('description'),
+      prix: parseFloat(fd.get('prix')),
+      poste: fd.get('poste'),
+      options: fd.get('options')
+          ? fd.get('options').split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+      photo: photoUrl,
+      disponible: fd.get('disponible') === 'on',
+      recette
+    };
+
+    // 4. Enregistrer ou modifier le produit.
     const id = fd.get('id');
-    if (id) await apiPut(`/api/products/${id}`, USER.role === 'admin' ? payload : { disponible: payload.disponible });
-    else await apiPost('/api/products', payload);
+
+    if (id) {
+      if (USER.role === 'admin') {
+        await apiPut(`/api/products/${id}`, payload);
+      } else {
+        await apiPut(`/api/products/${id}`, {
+          disponible: payload.disponible
+        });
+      }
+    } else {
+      await apiPost('/api/products', payload);
+    }
+
+    // 5. Fermer la fenêtre et actualiser la liste.
     document.getElementById('modalProduit').classList.remove('open');
-    chargerProduits();
-    toast('Produit enregistré', 'success');
-  } catch (err) { toast(err.message, 'error'); }
+
+    toast('Produit enregistré avec succès.', 'success');
+
+    await chargerProduits();
+
+    // Actualiser aussi le menu public si cette page est ouverte.
+    console.log('Produit enregistré. URL de la photo :', photoUrl);
+
+  } catch (err) {
+    console.error("Erreur lors de l'enregistrement du produit :", err);
+    toast(err.message || "Impossible d'enregistrer le produit.", 'error');
+
+  } finally {
+    if (bouton) {
+      bouton.disabled = false;
+      bouton.textContent = 'Enregistrer';
+    }
+  }
 }
 
 // ---------------- STOCK (produits finis) ----------------
