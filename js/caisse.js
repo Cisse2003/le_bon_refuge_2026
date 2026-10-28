@@ -32,7 +32,7 @@ async function init() {
   }
 
   // Filet de sécurité : rafraîchissement périodique toutes les 10 secondes
-  setInterval(chargerCommandesEnCours, 10000);
+  setInterval(chargerCommandesEnCours, 5000);
 
   document.getElementById('btnDeconnexion').addEventListener('click', async () => {
     await apiPost('/api/auth/logout');
