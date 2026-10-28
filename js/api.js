@@ -8,8 +8,12 @@ async function api(method, url, body) {
   };
 
   if (body !== undefined) {
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(body);
+    if (body instanceof FormData) {
+      opts.body = body;
+    } else {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
   }
 
   const res = await fetch(url, opts);
