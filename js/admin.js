@@ -196,7 +196,7 @@ async function enregistrerProduit(e) {
       const uploadFd = new FormData();
       uploadFd.append('photo', fichier);
 
-      const reponseUpload = await fetch('/api/upload', {
+      const reponseUpload = await fetch('/api/images', {
         method: 'POST',
         credentials: 'same-origin',
         body: uploadFd
