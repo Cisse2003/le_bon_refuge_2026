@@ -268,14 +268,14 @@ const Panier = {
     ouvrirDrawer() {
         const drawer = document.getElementById('cartDrawer');
         const overlay = document.getElementById('overlay');
-        if (drawer) drawer.classList.add('active');
+        if (drawer) drawer.classList.add('open');
         if (overlay) overlay.classList.add('active');
     },
 
     fermerDrawer() {
         const drawer = document.getElementById('cartDrawer');
         const overlay = document.getElementById('overlay');
-        if (drawer) drawer.classList.remove('active');
+        if (drawer) drawer.classList.remove('open');
         if (overlay) overlay.classList.remove('active');
     }
 };
