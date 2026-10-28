@@ -32,7 +32,7 @@ async function init() {
     socket.on('commande_modifiee', charger);
     socket.on('commande_supprimee', charger);
   }
-  setInterval(charger, 5000); // filet de sécurité si un événement socket est manqué
+  setInterval(charger, 10000); // filet de sécurité si un événement socket est manqué
 }
 
 function itemsPourPoste(order) {
