@@ -24,32 +24,51 @@ let MENU_DATA = [];
  * Les images sont stockées dans le dossier /images/.
  */
 function obtenirPhotoPlat(nom) {
-    const correspondances = {
-        "caprisun": "caprisun.png",
-        "riz gras à la viande": "riz_gras_a_la_viande.png",
-        "demi-poulet braisé": "demi_poulet_braise.png",
-        "riz gras poulet / poisson": "riz_gras_poulet_poisson.png",
-        "gâteau d'anniversaire personnalisé": "gateau_danniversaire_personnalise.png"
-    };
-
     const nomNormalise = String(nom || "")
-        .trim()
-        .toLocaleLowerCase("fr-FR");
-
-    // Utiliser le nom de fichier défini explicitement lorsqu'il existe.
-    if (correspondances[nomNormalise]) {
-        return "/images/" + correspondances[nomNormalise];
-    }
-
-    // Sinon, générer automatiquement un nom de fichier standard.
-    const fichier = nomNormalise
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+
+    // Correspondances explicites entre les plats et les images.
+    const correspondances = [
+        {
+            mots: ["caprisun", "capri-sun"],
+            fichier: "caprisun.png"
+        },
+        {
+            mots: ["riz gras a la viande"],
+            fichier: "riz_gras_a_la_viande.png"
+        },
+        {
+            mots: ["demi-poulet braise", "demi poulet braise"],
+            fichier: "demi_poulet_braise.png"
+        },
+        {
+            mots: ["riz gras poulet / poisson", "riz gras poulet poisson"],
+            fichier: "riz_gras_poulet_poisson.png"
+        },
+        {
+            mots: ["gateau d'anniversaire personnalise", "gateau anniversaire personnalise"],
+            fichier: "gateau_danniversaire_personnalise.png"
+        }
+    ];
+
+    const correspondance = correspondances.find(element =>
+        element.mots.some(mot => nomNormalise.includes(mot))
+    );
+
+    if (correspondance) {
+        return "/images/" + correspondance.fichier;
+    }
+
+    // Pour les plats sans correspondance explicite, générer le chemin.
+    const fichier = nomNormalise
         .replace(/['’]/g, "")
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "");
 
-    return fichier ? `/images/${fichier}.png` : "";
+    return fichier ? "/images/" + fichier + ".png" : "";
 }
 
 
@@ -86,7 +105,11 @@ async function chargerDonneesEtContact() {
     } catch (err) {
         console.error('Erreur lors du chargement du menu :', err);
 
-        MENU_DATA = getMenuFallback();
+        MENU_DATA = getMenuFallback().map(item => ({
+            ...item,
+            photo: obtenirPhotoPlat(item.nom)
+        }));
+
         afficherMenu(MENU_DATA);
         afficherPlatsPopulaires(MENU_DATA);
         remplirParfumsGateau(MENU_DATA);
