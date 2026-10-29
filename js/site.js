@@ -591,7 +591,7 @@ function initialiserModales() {
    ========================================================================== */
 
 function formatMontant(montant) {
-    return new Intl.NumberFormat('fr-FR').format(montant) + ' FG';
+    return new Intl.NumberFormat('fr-FR').format(montant) + ' GNF';
 }
 
 function escapeHtml(str) {

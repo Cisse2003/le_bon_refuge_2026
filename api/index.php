@@ -358,7 +358,7 @@ if ($segments[0] === 'orders') {
             'utilisateur'    => $user['username'] ?? 'client (site)',
             'role'           => $user['role'] ?? 'client',
             'action'         => 'CREATION_COMMANDE',
-            'nouvelleValeur' => 'Total: ' . number_format($total, 0, ',', ' ') . ' FG'
+            'nouvelleValeur' => 'Total: ' . number_format($total, 0, ',', ' ') . ' GNF'
         ]);
 
         $out = fetchOrderById($pdo, $orderId);
@@ -1028,7 +1028,7 @@ function genererTicketPdf(PDO $pdo, string $orderId): string
                 0,
                 ',',
                 ' '
-            ) . ' FG
+            ) . ' GNF
                 </td>
             </tr>
         ';
@@ -1236,7 +1236,7 @@ function genererTicketPdf(PDO $pdo, string $orderId): string
             0,
             ',',
             ' '
-        ) . ' FG
+        ) . ' GNF
                     </td>
                 </tr>
             </table>

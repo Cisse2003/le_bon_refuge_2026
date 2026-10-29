@@ -83,8 +83,8 @@ function toast(message, type) {
 }
 
 function formatMontant(n) {
-  // Franc guinéen (FG) : pas de décimales, séparateur de milliers "espace" (convention locale/française)
-  return Math.round(Number(n || 0)).toLocaleString('fr-FR') + ' FG';
+  // Franc guinéen (GNF) : pas de décimales, séparateur de milliers "espace" (convention locale/française)
+  return Math.round(Number(n || 0)).toLocaleString('fr-FR') + ' GNF';
 }
 
 function formatHeure(iso) {
