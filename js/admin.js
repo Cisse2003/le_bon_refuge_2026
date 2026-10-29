@@ -863,10 +863,16 @@ function afficherCalendrierPlanning() {
           const estEnCours = !session.logout_at;
 
           // Le nom provient directement de la réponse de l'API.
-          const nomSession =
-              session.nom_utilisateur ||
-              session.identifiant_utilisateur ||
-              `Utilisateur ${session.user_id}`;
+        const nomSession =
+            session.nom_utilisateur ||
+            planningState.users.find(
+                user => String(user.id ?? user.user_id) === String(session.user_id)
+            )?.nom ||
+            planningState.users.find(
+                user => String(user.id ?? user.user_id) === String(session.user_id)
+            )?.username ||
+            session.identifiant_utilisateur ||
+            `Utilisateur ${session.user_id}`;
 
           const tooltip = [
               nomSession,
@@ -1008,35 +1014,38 @@ function afficherDetailsJour(jourISO) {
     return debut <= jourISO && (!session.logout_at || fin >= jourISO);
   });
 
-  const nomsUtilisateurs = new Map(
-    planningState.users.map((user) => [
-      String(user.id ?? user.user_id),
-      user.nom ?? user.username ?? user.name ?? "Utilisateur"
-    ])
-  );
+    const nomsUtilisateurs = new Map(
+      planningState.users.map((user) => [
+        String(user.id ?? user.user_id),
+        user.nom || user.username || user.name || "Utilisateur"
+      ])
+    );
 
-  const lignes = sessionsJour.map((session) => {
-    const nom =
+    const lignes = sessionsJour.map((session) => {
+      const nom =
         session.nom_utilisateur ||
-        session.identifiant_utilisateur ||
         nomsUtilisateurs.get(String(session.user_id)) ||
+        session.identifiant_utilisateur ||
         `Utilisateur ${session.user_id}`;
-    const debut = formaterHeure(session.login_at);
-    const fin = session.logout_at
-      ? formaterHeure(session.logout_at)
-      : "En cours";
 
-    const minutes = dureeSession(session);
+      const debut = formaterHeure(session.login_at);
 
-    return `
-<tr>
-<td>${echapperHTML(nom)}</td>
-<td>${echapperHTML(debut)}</td>
-<td>${echapperHTML(fin)}</td>
-<td>${formaterDuree(minutes)}</td>
-</tr>
-`;
-  }).join("");
+      const fin = session.logout_at
+        ? formaterHeure(session.logout_at)
+        : "En cours";
+
+      const minutes = dureeSession(session);
+
+      return `
+      <tr>
+      <td>${echapperHTML(nom)}</td>
+      <td>${echapperHTML(debut)}</td>
+      <td>${echapperHTML(fin)}</td>
+      <td>${formaterDuree(minutes)}</td>
+    </tr>
+      `;
+    }).join("");
+
 
   const ancien = document.getElementById("modalDetailsPlanning");
   if (ancien) ancien.remove();
