@@ -276,32 +276,73 @@
   </div>
 </div>
 
-<!-- Modale personnalisation gâteau -->
+<!-- Modale de commande de gâteau d'anniversaire -->
 <div class="modal-overlay" id="modalGateau">
   <div class="modal">
-    <button class="modal-close" data-close-modal>✕</button>
-    <h3 style="font-family:var(--font-body); color:var(--paper);">Composer un gâteau</h3>
+    <button class="modal-close" data-close-modal type="button">✕</button>
+
+    <h3 style="font-family:var(--font-body); color:var(--paper);">
+      Commander un gâteau d'anniversaire
+    </h3>
+
+    <p style="margin-bottom:1rem;">
+      Choisissez le format et l'option chocolat selon notre carte.
+    </p>
+
     <form id="formGateau">
-      <label>Taille</label>
-      <select name="taille" required>
-        <option value="6 parts">6 parts</option>
-        <option value="10 parts">10 parts</option>
-        <option value="15 parts">15 parts</option>
-        <option value="20 parts">20 parts</option>
+      <label for="tailleGateau">Format du gâteau</label>
+      <select name="taille" id="tailleGateau" required>
+        <option value="Petit">Petit — 85 000 FG</option>
+        <option value="Moyen">Moyen — 105 000 FG</option>
+        <option value="Grand">Grand — 200 000 FG</option>
       </select>
-      <label>Parfum</label>
-      <select name="parfum" id="selectParfumGateau" required></select>
-      <label>Décoration souhaitée</label>
-      <input type="text" name="decoration" placeholder="Ex : thème licorne, chocolat, fruits rouges...">
-      <label>Texte sur le gâteau</label>
-      <input type="text" name="texte" placeholder="Ex : Joyeux anniversaire Sarah !">
-      <div class="field-row">
-        <div><label>Date de retrait</label><input type="date" name="date" required></div>
-        <div><label>Heure de retrait</label><input type="time" name="heure" required></div>
+
+      <label for="chocolatGateau">Option chocolat</label>
+      <select name="chocolat" id="chocolatGateau" required>
+        <option value="non">Sans chocolat</option>
+        <option value="oui">Avec chocolat</option>
+      </select>
+
+      <div class="card" style="margin:1rem 0; padding:1rem;">
+        <div style="display:flex; justify-content:space-between; gap:1rem; align-items:center;">
+          <strong>Prix du gâteau</strong>
+          <strong id="prixGateau" style="color:var(--accent); font-size:1.2rem;">
+            85 000 FG
+          </strong>
+        </div>
+
+        <p style="font-size:0.85rem; margin:0.7rem 0 0;">
+          🎂 Découpage offert si vous décidez de fêter dans le restaurant !
+        </p>
       </div>
-      <label>Photo modèle (facultatif)</label>
-      <input type="file" name="photo" accept="image/*">
-      <button class="btn btn--block" type="submit">Ajouter au panier</button>
+
+      <label for="texteGateau">Texte sur le gâteau (facultatif)</label>
+      <input
+              type="text"
+              name="texte"
+              id="texteGateau"
+              maxlength="100"
+              placeholder="Ex. : Joyeux anniversaire Sarah !"
+      >
+
+      <div class="field-row">
+        <div>
+          <label for="dateGateau">Date de retrait</label>
+          <input type="date" name="date" id="dateGateau" required>
+        </div>
+
+        <div>
+          <label for="heureGateau">Heure de retrait</label>
+          <input type="time" name="heure" id="heureGateau" required>
+        </div>
+      </div>
+
+      <label for="photoGateau">Photo modèle (facultatif)</label>
+      <input type="file" name="photo" id="photoGateau" accept="image/*">
+
+      <button class="btn btn--block" type="submit">
+        Ajouter au panier
+      </button>
     </form>
   </div>
 </div>
@@ -449,6 +490,34 @@
         formAvis.reset();
         alert('Merci ! Votre avis a bien été publié.');
       });
+    }
+
+    // Gestion des tarifs du gâteau d'anniversaire
+    const tailleGateau = document.getElementById('tailleGateau');
+    const chocolatGateau = document.getElementById('chocolatGateau');
+    const prixGateau = document.getElementById('prixGateau');
+
+    const tarifsGateau = {
+      Petit: { non: 85000, oui: 125000 },
+      Moyen: { non: 105000, oui: 155000 },
+      Grand: { non: 200000, oui: 255000 }
+    };
+
+    function actualiserPrixGateau() {
+      if (!tailleGateau || !chocolatGateau || !prixGateau) return;
+
+      const taille = tailleGateau.value;
+      const chocolat = chocolatGateau.value;
+      const prix = tarifsGateau[taille][chocolat];
+
+      prixGateau.textContent =
+              prix.toLocaleString('fr-FR') + ' FG';
+    }
+
+    if (tailleGateau && chocolatGateau) {
+      tailleGateau.addEventListener('change', actualiserPrixGateau);
+      chocolatGateau.addEventListener('change', actualiserPrixGateau);
+      actualiserPrixGateau();
     }
   });
 

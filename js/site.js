@@ -449,36 +449,96 @@ function initialiserFormulaires() {
         });
     }
 
-    // D. Soumission Gâteau Personnalisé
+    // D. Soumission Gâteau d'Anniversaire
     const btnCommanderGateau = document.getElementById('btnCommanderGateau');
+
     if (btnCommanderGateau) {
-        btnCommanderGateau.addEventListener('click', () => ouvrirModal('modalGateau'));
+        btnCommanderGateau.addEventListener('click', () => {
+            ouvrirModal('modalGateau');
+        });
     }
 
     const formGateau = document.getElementById('formGateau');
+
+    // Tarifs officiels de la carte des gâteaux
+    const tarifsGateau = {
+        Petit: {
+            non: 85000,
+            oui: 125000
+        },
+        Moyen: {
+            non: 105000,
+            oui: 155000
+        },
+        Grand: {
+            non: 200000,
+            oui: 255000
+        }
+    };
+
     if (formGateau) {
         formGateau.addEventListener('submit', (e) => {
             e.preventDefault();
+
             const formData = new FormData(formGateau);
 
+            const taille = formData.get('taille');
+            const chocolat = formData.get('chocolat');
+            const texte = String(formData.get('texte') || '').trim();
+            const date = formData.get('date');
+            const heure = formData.get('heure');
+
+            // Vérification du format et de l'option chocolat
+            if (
+                !Object.prototype.hasOwnProperty.call(tarifsGateau, taille) ||
+                !['oui', 'non'].includes(chocolat)
+            ) {
+                alert('Veuillez choisir un format et une option chocolat valides.');
+                return;
+            }
+
+            // Calcul du prix selon la carte officielle
+            const prix = tarifsGateau[taille][chocolat];
+
+            // Nom explicite du produit dans le panier
+            const optionChocolat = chocolat === 'oui'
+                ? 'Avec chocolat'
+                : 'Sans chocolat';
+
+            const nomGateau = `Gâteau d'anniversaire - ${taille} format (${optionChocolat})`;
+
+            // Création de l'article personnalisé
             const itemGateau = {
                 id: 'gateau-' + Date.now(),
                 productId: null,
-                nom: `Gâteau ${formData.get('taille')} (${formData.get('parfum')})`,
-                prix: 150000,
+                nom: nomGateau,
+                prix: prix,
                 quantite: 1,
                 poste: 'cuisine',
                 options: [],
-              personnalisation: {
-                taille: formData.get('taille'), parfum: formData.get('parfum'),
-                decoration: formData.get('decoration'), texte: formData.get('texte'),
-                date: formData.get('date'), heure: formData.get('heure')
-              }
+                personnalisation: {
+                    type: 'gateau_anniversaire',
+                    taille: taille,
+                    chocolat: chocolat === 'oui',
+                    texte: texte,
+                    date: date,
+                    heure: heure
+                }
             };
 
+            // Ajout au panier avec le tarif correspondant
             Panier.ajouter(itemGateau);
+
+            // Fermeture de la fenêtre et réinitialisation du formulaire
             fermerModal('modalGateau');
             formGateau.reset();
+
+            // Réinitialisation du prix affiché à la valeur par défaut
+            const prixAffiche = document.getElementById('prixGateau');
+
+            if (prixAffiche) {
+                prixAffiche.textContent = '85 000 FG';
+            }
         });
     }
 }
