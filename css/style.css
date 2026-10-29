@@ -606,3 +606,214 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
 }
 
 .overlay.open, .overlay.active { opacity: 1; pointer-events: auto; }
+
+
+/* ==========================================================
+   PLANNING MENSUEL — LE BON REFUGE
+   ========================================================== */
+
+.planning-calendrier,
+.planning-recap {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.planning-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.planning-entete h3 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.planning-navigation,
+.planning-aujourdhui {
+  border: 1px solid var(--accent, #e8a33d);
+  border-radius: 8px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font: inherit;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.planning-navigation {
+  font-size: 1.2rem;
+  min-width: 42px;
+}
+
+.planning-navigation:hover,
+.planning-aujourdhui:hover {
+  background: var(--accent, #e8a33d);
+  color: #fff;
+}
+
+.planning-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+  font-size: 0.88rem;
+}
+
+.planning-grille {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid rgba(128, 128, 128, 0.25);
+  border-left: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 8px;
+  overflow: visible;
+}
+
+.planning-jour-entete {
+  text-align: center;
+  font-weight: 700;
+  padding: 12px 4px;
+  background: rgba(128, 128, 128, 0.08);
+  border-right: 1px solid rgba(128, 128, 128, 0.25);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.planning-case {
+  min-width: 0;
+  min-height: 115px;
+  padding: 7px;
+  position: relative;
+  border-right: 1px solid rgba(128, 128, 128, 0.25);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+  background: var(--paper, #fff);
+}
+
+.planning-case-vide {
+  background: rgba(128, 128, 128, 0.04);
+}
+
+.planning-aujourdhui-case {
+  box-shadow: inset 0 0 0 2px var(--accent, #e8a33d);
+}
+
+.planning-numero-jour {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.planning-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.planning-session {
+  min-width: 0;
+  padding: 6px;
+  border-radius: 5px;
+  cursor: help;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.planning-session-terminee {
+  background: rgba(45, 150, 90, 0.13);
+  border-left: 3px solid #2d965a;
+}
+
+.planning-session-active {
+  background: rgba(232, 163, 61, 0.18);
+  border-left: 3px solid var(--accent, #e8a33d);
+}
+
+.planning-session-nom {
+  display: block;
+  font-weight: 700;
+}
+
+.planning-session-duree {
+  display: block;
+  margin-top: 3px;
+}
+
+.planning-session:focus-visible {
+  outline: 2px solid var(--accent, #e8a33d);
+  outline-offset: 2px;
+}
+
+.planning-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.planning-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.planning-table th,
+.planning-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.planning-table th {
+  background: rgba(128, 128, 128, 0.08);
+}
+
+.planning-note {
+  font-size: 0.88rem;
+  opacity: 0.8;
+  margin-top: 12px;
+}
+
+.planning-erreur {
+  padding: 16px;
+  border-left: 4px solid #c0392b;
+  border-radius: 6px;
+  background: rgba(192, 57, 43, 0.08);
+}
+
+@media (max-width: 850px) {
+  .planning-case {
+    min-height: 90px;
+    padding: 4px;
+  }
+
+  .planning-session {
+    font-size: 0.68rem;
+    padding: 4px;
+  }
+
+  .planning-session-duree {
+    font-size: 0.65rem;
+  }
+
+  .planning-jour-entete {
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 550px) {
+  .planning-entete h3 {
+    flex-basis: 100%;
+    order: -1;
+  }
+
+  .planning-case {
+    min-height: 70px;
+  }
+
+  .planning-session-nom {
+    display: none;
+  }
+
+  .planning-session-duree {
+    font-size: 0.65rem;
+  }
+}

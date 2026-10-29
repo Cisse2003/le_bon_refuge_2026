@@ -68,7 +68,7 @@ function ouvrirPanel(nom) {
     ingredients: chargerIngredients,
     commandes: chargerCommandes, reservations: chargerReservations,
     utilisateurs: chargerUtilisateurs, historique: chargerHistorique,
-    planning: () => chargerPlanning('1')
+    planning: () => chargerDonneesPlanning()
   };
   if (chargeurs[nom]) chargeurs[nom]();
 }
@@ -569,172 +569,391 @@ async function chargerHistorique() {
   `).join('') || '<tr><td colspan="6">Aucune entrée</td></tr>';
 }
 
-// --- PLANNING SUR 4 SEMAINES DYNAMIQUE DEPUIS LA BDD ---
+/* ==========================================================
+   PLANNING RÉEL — LE BON REFUGE
+   Calendrier mensuel et heures de présence
+   ========================================================== */
 
-const PLANNING_REEL_DATA = {
-  legende: {
-    "M": "Matin (Cuisine: 09h-16h / Service: 10h-16h)",
-    "S": "Soir (Cuisine/Service: 15h30-22h30 ou 23h)",
-    "2": "Double service (matin + soir)",
-    "R": "Repos"
-  },
-  horairesReference: [
-    { poste: "Cuisine matin", horaire: "09h00-16h00", pause: "30 min", effectif: "6 h 30" },
-    { poste: "Cuisine soir (semaine)", horaire: "15h30-22h30", pause: "30 min", effectif: "6 h 30" },
-    { poste: "Cuisine soir (week-end)", horaire: "15h30-23h00", pause: "30 min", effectif: "7 h 00" },
-    { poste: "Service matin", horaire: "10h00-16h00", pause: "30 min", effectif: "5 h 30" },
-    { poste: "Service soir (semaine)", horaire: "15h30-22h30", pause: "30 min", effectif: "6 h 30" },
-    { poste: "Service soir (week-end)", horaire: "15h30-23h00", pause: "30 min", effectif: "7 h 00" }
-  ]
+const planningState = {
+  date: new Date(),
+  users: [],
+  sessions: [],
+  loading: false
 };
 
-async function chargerPlanning(selection = '1') {
-  const container = document.getElementById('contenuPlanning');
-  const joursEntete = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const MOIS_FR = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre",
+  "Novembre", "Décembre"
+];
 
-  document.querySelectorAll('[data-semaine]').forEach(b => {
-    b.classList.toggle('active', b.dataset.semaine === selection);
-    b.classList.toggle('btn--dark', b.dataset.semaine === selection);
-    b.classList.toggle('btn--ghost', b.dataset.semaine !== selection);
+const JOURS_FR = [
+  "Lundi", "Mardi", "Mercredi", "Jeudi",
+  "Vendredi", "Samedi", "Dimanche"
+];
+
+/**
+ * Formate une durée en heures et minutes.
+ */
+function formaterDuree(minutes) {
+  const heures = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+
+  return `${heures} h ${String(mins).padStart(2, "0")} min`;
+}
+
+/**
+ * Convertit une date en YYYY-MM-DD.
+ */
+function dateISO(date) {
+  const annee = date.getFullYear();
+  const mois = String(date.getMonth() + 1).padStart(2, "0");
+  const jour = String(date.getDate()).padStart(2, "0");
+
+  return `${annee}-${mois}-${jour}`;
+}
+
+/**
+ * Affiche une heure locale.
+ */
+function formaterHeure(dateString) {
+  if (!dateString) return "En cours";
+
+  const date = new Date(dateString.replace(" ", "T"));
+
+  if (Number.isNaN(date.getTime())) {
+    return "Non disponible";
+  }
+
+  return date.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+/**
+ * Échappe les valeurs avant insertion dans le HTML.
+ */
+function echapperHTML(valeur) {
+  return String(valeur ?? "").replace(/[&<>"']/g, caractere => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[caractere]);
+}
+
+/**
+ * Calcule la durée d'une session en minutes.
+ */
+function dureeSession(session) {
+  const debut = new Date(
+      String(session.login_at).replace(" ", "T")
+  );
+
+  const fin = session.logout_at
+      ? new Date(String(session.logout_at).replace(" ", "T"))
+      : new Date();
+
+  if (
+      Number.isNaN(debut.getTime()) ||
+      Number.isNaN(fin.getTime()) ||
+      fin < debut
+  ) {
+    return 0;
+  }
+
+  return Math.floor((fin - debut) / 60000);
+}
+
+/**
+ * Retourne toutes les sessions d'un utilisateur pour un jour donné.
+ */
+function sessionsDuJour(userId, jour) {
+  return planningState.sessions.filter(session => {
+    return String(session.user_id) === String(userId)
+        && String(session.login_at).slice(0, 10) === jour;
+  });
+}
+
+/**
+ * Charge les données depuis le serveur.
+ *
+ * Les deux routes doivent être accessibles à l'administrateur.
+ */
+async function chargerDonneesPlanning() {
+  if (planningState.loading) return;
+
+  planningState.loading = true;
+
+  const conteneur = document.getElementById("contenuPlanning");
+
+  if (conteneur) {
+    conteneur.innerHTML = "<p>Chargement du planning…</p>";
+  }
+
+  try {
+    const annee = planningState.date.getFullYear();
+    const mois = String(
+        planningState.date.getMonth() + 1
+    ).padStart(2, "0");
+
+    const [reponseUsers, reponseSessions] = await Promise.all([
+      api("GET", "/api/users"),
+      api("GET", `/api/admin/sessions?month=${annee}-${mois}`)
+    ]);
+
+    /*
+     * Adapte ces deux affectations à la structure exacte
+     * des objets renvoyés par ton backend.
+     */
+    planningState.users = Array.isArray(reponseUsers)
+        ? reponseUsers
+        : reponseUsers.users || [];
+
+    planningState.sessions = Array.isArray(reponseSessions)
+        ? reponseSessions
+        : reponseSessions.sessions || [];
+
+    afficherCalendrierPlanning();
+
+  } catch (erreur) {
+    console.error("Erreur de chargement du planning :", erreur);
+
+    if (conteneur) {
+      conteneur.innerHTML = `
+                <div class="planning-erreur">
+                    <strong>Impossible de charger le planning.</strong>
+                    <p>Vérifie les routes API et les droits administrateur.</p>
+                </div>
+            `;
+    }
+  } finally {
+    planningState.loading = false;
+  }
+}
+
+/**
+ * Affiche le calendrier complet du mois.
+ */
+function afficherCalendrierPlanning() {
+  const conteneur = document.getElementById("contenuPlanning");
+
+  if (!conteneur) return;
+
+  const date = planningState.date;
+  const annee = date.getFullYear();
+  const mois = date.getMonth();
+
+  const premierJour = new Date(annee, mois, 1);
+  const nombreJours = new Date(annee, mois + 1, 0).getDate();
+
+  // JavaScript : dimanche = 0.
+  // Calendrier français : lundi = première colonne.
+  const decalage = (premierJour.getDay() + 6) % 7;
+
+  const aujourdHui = dateISO(new Date());
+
+  const utilisateurs = planningState.users.filter(user => {
+    return user.active !== false && user.deleted_at == null;
   });
 
-  // 1. Récupération des utilisateurs réels depuis la base de données
-  let utilisateursBDD = [];
-  try {
-    utilisateursBDD = await apiGet('/api/users');
-  } catch (err) {
-    console.error('Erreur lors du chargement des utilisateurs pour le planning :', err);
-  }
+  let html = `
+        <section class="planning-calendrier">
+            <header class="planning-entete">
+                <button type="button"
+                        class="planning-navigation"
+                        id="planningMoisPrecedent"
+                        aria-label="Mois précédent">
+                    ←
+                </button>
 
-  const personnelActif = utilisateursBDD.filter(u => u.actif);
-  const equipeCuisine = personnelActif.filter(u => ['admin', 'chef', 'assistant_chef'].includes(u.role));
-  const equipeSalle = personnelActif.filter(u => u.role === 'serveur');
+                <h3>
+                    ${MOIS_FR[mois]} ${annee}
+                </h3>
 
-  // Vue : Horaires de référence et bases de contrats
-  if (selection === 'ref') {
-    container.innerHTML = `
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">1. Horaires de référence</h3>
-      <table style="margin-bottom: 2rem;">
-        <thead>
-          <tr><th>Poste</th><th>Horaire</th><th>Pause</th><th>Travail effectif</th></tr>
-        </thead>
-        <tbody>
-          ${PLANNING_REEL_DATA.horairesReference.map(h => `
-            <tr>
-              <td><strong>${escapeHtml(h.poste)}</strong></td>
-              <td>${escapeHtml(h.horaire)}</td>
-              <td>${escapeHtml(h.pause)}</td>
-              <td><span class="badge badge--ok">${escapeHtml(h.effectif)}</span></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+                <button type="button"
+                        class="planning-navigation"
+                        id="planningMoisSuivant"
+                        aria-label="Mois suivant">
+                    →
+                </button>
 
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">2. Personnel actif dans la base de données</h3>
-      <table>
-        <thead>
-          <tr><th>Nom du personnel</th><th>Identifiant</th><th>Rôle</th><th>Statut</th></tr>
-        </thead>
-        <tbody>
-          ${utilisateursBDD.map(u => `
-            <tr>
-              <td><strong>${escapeHtml(u.nom)}</strong></td>
-              <td>${escapeHtml(u.username)}</td>
-              <td>${escapeHtml(u.role)}</td>
-              <td>${u.actif ? '<span class="badge badge--ok">Actif</span>' : '<span class="badge badge--out">Inactif</span>'}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+                <button type="button"
+                        class="planning-aujourdhui"
+                        id="planningAujourdhui">
+                    Aujourd'hui
+                </button>
+            </header>
+
+            <div class="planning-legende">
+                <span>🟢 Session terminée</span>
+                <span>🟠 Connexion en cours</span>
+                <span>⚪ Aucune session</span>
+            </div>
+
+            <div class="planning-grille">
     `;
-    return;
+
+  // En-têtes des jours de la semaine.
+  for (const jour of JOURS_FR) {
+    html += `
+            <div class="planning-jour-entete">
+                ${jour}
+            </div>
+        `;
   }
 
-  // Vue : Récapitulatif Global
-  if (selection === 'recap') {
-    container.innerHTML = `
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">3. Récapitulatif des heures par personne (4 semaines)</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Personnel</th><th>Sem. 1</th><th>Sem. 2</th><th>Sem. 3</th><th>Sem. 4</th><th>Total 4 sem.</th><th>Moy. / sem.</th><th>Contrat</th><th>Par mois</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${personnelActif.map(p => `
-            <tr>
-              <td><strong>${escapeHtml(p.nom)} (${escapeHtml(p.role)})</strong></td>
-              <td>39 h</td><td>39 h</td><td>39 h</td><td>39 h</td>
-              <td><strong>156 h</strong></td><td>39 h</td><td>39 h</td><td>169 h</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    return;
+  // Cases vides avant le premier jour du mois.
+  for (let i = 0; i < decalage; i++) {
+    html += `
+            <div class="planning-case planning-case-vide"
+                 aria-hidden="true"></div>
+        `;
   }
 
-  // Générateur dynamique de plannings (Semaines 1 à 4) selon les rotations
-  const genererLignesDynamiques = (listePersonnel, decalageSemaine = 0) => {
-    if (!listePersonnel || listePersonnel.length === 0) {
-      return '<tr><td colspan="9" style="text-align:center; color:var(--text-dim);">Aucun personnel dans cette catégorie</td></tr>';
+  // Toutes les dates du mois.
+  for (let numeroJour = 1; numeroJour <= nombreJours; numeroJour++) {
+    const dateCourante = new Date(annee, mois, numeroJour);
+    const jourISO = dateISO(dateCourante);
+
+    const estAujourdhui = jourISO === aujourdHui;
+
+    html += `
+            <div class="planning-case ${estAujourdhui ? "planning-aujourdhui-case" : ""}">
+                <div class="planning-numero-jour">
+                    ${numeroJour}
+                </div>
+                <div class="planning-sessions">
+        `;
+
+    for (const user of utilisateurs) {
+      const idUtilisateur = user.id ?? user.user_id;
+      const nomUtilisateur =
+          user.name ??
+          user.nom ??
+          user.username ??
+          user.login ??
+          `Utilisateur ${idUtilisateur}`;
+
+      const sessions = sessionsDuJour(idUtilisateur, jourISO);
+
+      if (sessions.length === 0) continue;
+
+      for (const session of sessions) {
+        const minutes = dureeSession(session);
+        const estEnCours = !session.logout_at;
+
+        const tooltip = [
+          nomUtilisateur,
+          `Connexion : ${formaterHeure(session.login_at)}`,
+          `Déconnexion : ${formaterHeure(session.logout_at)}`,
+          `Durée : ${formaterDuree(minutes)}`
+        ].join("\n");
+
+        html += `
+                    <div class="planning-session
+                                ${estEnCours
+            ? "planning-session-active"
+            : "planning-session-terminee"}"
+                         tabindex="0"
+                         title="${echapperHTML(tooltip)}"
+                         aria-label="${echapperHTML(tooltip)}">
+
+                        <span class="planning-session-nom">
+                            ${echapperHTML(nomUtilisateur)}
+                        </span>
+
+                        <span class="planning-session-duree">
+                            ${formaterDuree(minutes)}
+                        </span>
+
+                    </div>
+                `;
+      }
     }
 
-    const rotations = [
-      ["R", "M", "M", "M", "M", "M", "M"],
-      ["M", "M", "M", "M", "M", "M", "R"],
-      ["S", "S", "S", "S", "S", "R", "M"],
-      ["S", "S", "S", "R", "M", "M", "M"],
-      ["M", "S", "R", "S", "S", "S", "S"]
-    ];
+    html += `
+                </div>
+            </div>
+        `;
+  }
 
-    return listePersonnel.map((pers, index) => {
-      // Rotation dynamique en fonction de la semaine sélectionnée pour varier les plannings
-      const rotationIndex = (index + decalageSemaine) % rotations.length;
-      const joursPers = rotations[rotationIndex];
+  html += `
+            </div>
+        </section>
+        <section class="planning-recap">
+            <h3>Récapitulatif des heures du mois</h3>
+            <div class="planning-table-wrapper">
+                <table class="planning-table">
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Sessions</th>
+                            <th>Heures cumulées</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
 
-      return `
-        <tr>
-          <td><strong>${escapeHtml(pers.nom)} <small style="color:var(--text-dim);">(${escapeHtml(pers.role)})</small></strong></td>
-          ${joursPers.map(j => `<td><span class="badge ${j === 'R' ? 'badge--out' : (j === '2' ? 'badge--alert' : 'badge--ok')}">${j}</span></td>`).join('')}
-          <td><strong>39 h</strong></td>
-        </tr>
-      `;
-    }).join('');
-  };
+  for (const user of utilisateurs) {
+    const idUtilisateur = user.id ?? user.user_id;
 
-  const genererTableauSection = (titre, lignesHtml) => `
-    <h4 style="font-family:var(--font-body); color:var(--paper); margin: 1rem 0 0.5rem 0;">${titre}</h4>
-    <table>
-      <thead>
-        <tr>
-          <th>Personnel (Base de données)</th>
-          ${joursEntete.map(j => `<th>${j}</th>`).join('')}
-          <th>Heures</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${lignesHtml}
-      </tbody>
-    </table>
-  `;
+    const sessionsUtilisateur = planningState.sessions.filter(session => {
+      return String(session.user_id) === String(idUtilisateur);
+    });
 
-  // Décalage de rotation selon le numéro de la semaine (1, 2, 3 ou 4)
-  const numSemaine = parseInt(selection) || 1;
+    const totalMinutes = sessionsUtilisateur.reduce((total, session) => {
+      return total + dureeSession(session);
+    }, 0);
 
-  container.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-      <h3 style="font-family:var(--font-body); color:var(--paper); margin:0;">Semaine ${numSemaine}</h3>
-      <div style="font-size:0.8rem; color:var(--text-dim); display:flex; gap:0.8rem;">
-        <span><strong>M</strong> : Matin</span>
-        <span><strong>S</strong> : Soir</span>
-        <span><strong>2</strong> : Double service</span>
-        <span><strong>R</strong> : Repos</span>
-      </div>
-    </div>
-    ${genererTableauSection('Direction & Cuisine', genererLignesDynamiques(equipeCuisine, numSemaine - 1))}
-    ${genererTableauSection('Service / Salle', genererLignesDynamiques(equipeSalle, numSemaine - 1))}
-  `;
+    const nomUtilisateur =
+        user.name ??
+        user.nom ??
+        user.username ??
+        user.login ??
+        `Utilisateur ${idUtilisateur}`;
+
+    html += `
+            <tr>
+                <td>${echapperHTML(nomUtilisateur)}</td>
+                <td>${sessionsUtilisateur.length}</td>
+                <td>${formaterDuree(totalMinutes)}</td>
+            </tr>
+        `;
+  }
+
+  html += `
+                    </tbody>
+                </table>
+            </div>
+            <p class="planning-note">
+                Les sessions sans heure de déconnexion sont calculées
+                jusqu'à l'heure actuelle.
+            </p>
+        </section>
+    `;
+
+  conteneur.innerHTML = html;
+
+  document.getElementById("planningMoisPrecedent")
+      ?.addEventListener("click", () => {
+        planningState.date = new Date(annee, mois - 1, 1);
+        chargerDonneesPlanning();
+      });
+
+  document.getElementById("planningMoisSuivant")
+      ?.addEventListener("click", () => {
+        planningState.date = new Date(annee, mois + 1, 1);
+        chargerDonneesPlanning();
+      });
+
+  document.getElementById("planningAujourdhui")
+      ?.addEventListener("click", () => {
+        planningState.date = new Date();
+        chargerDonneesPlanning();
+      });
 }
 
 init();
