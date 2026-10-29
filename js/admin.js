@@ -940,22 +940,6 @@ const { nom: nomSession } = trouverUtilisateurSession(session);
         `;
   }
 
-  html += `
-            </div>
-        </section>
-        <section class="planning-recap">
-            <h3>Récapitulatif des heures du mois</h3>
-            <div class="planning-table-wrapper">
-                <table class="planning-table">
-                    <thead>
-                        <tr>
-                            <th>Utilisateur</th>
-                            <th>Sessions</th>
-                            <th>Heures cumulées</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    `;
 
   for (const user of utilisateurs) {
     const idUtilisateur = user.id ?? user.user_id;
