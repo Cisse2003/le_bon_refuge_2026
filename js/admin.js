@@ -727,6 +727,8 @@ async function chargerDonneesPlanning() {
         ? reponseSessions
         : reponseSessions.sessions || [];
 
+    console.log("Sessions chargées :", planningState.sessions);
+
     afficherCalendrierPlanning();
 
   } catch (erreur) {
@@ -857,35 +859,40 @@ function afficherCalendrierPlanning() {
       if (sessions.length === 0) continue;
 
       for (const session of sessions) {
-        const minutes = dureeSession(session);
-        const estEnCours = !session.logout_at;
+          const minutes = dureeSession(session);
+          const estEnCours = !session.logout_at;
 
-        const tooltip = [
-          nomUtilisateur,
-          `Connexion : ${formaterHeure(session.login_at)}`,
-          `Déconnexion : ${formaterHeure(session.logout_at)}`,
-          `Durée : ${formaterDuree(minutes)}`
-        ].join("\n");
+          // Le nom provient directement de la réponse de l'API.
+          const nomSession =
+              session.nom_utilisateur ||
+              session.identifiant_utilisateur ||
+              `Utilisateur ${session.user_id}`;
 
-        html += `
-                    <div class="planning-session
-                                ${estEnCours
-            ? "planning-session-active"
-            : "planning-session-terminee"}"
-                         tabindex="0"
-                         title="${echapperHTML(tooltip)}"
-                         aria-label="${echapperHTML(tooltip)}">
+          const tooltip = [
+              nomSession,
+              `Connexion : ${formaterHeure(session.login_at)}`,
+              `Déconnexion : ${formaterHeure(session.logout_at)}`,
+              `Durée : ${formaterDuree(minutes)}`
+          ].join("\n");
 
-                        <span class="planning-session-nom">
-                            ${echapperHTML(nomUtilisateur)}
-                        </span>
-
-                        <span class="planning-session-duree">
-                            ${formaterDuree(minutes)}
-                        </span>
-
-                    </div>
-                `;
+          html += `
+            <div class="planning-session
+            ${estEnCours
+                ? "planning-session-active"
+                : "planning-session-terminee"}"
+            title="${echapperHTML(tooltip)}"
+            aria-label="${echapperHTML(tooltip)}">
+      
+                <span class="planning-session-nom">
+                ${echapperHTML(nomSession)}
+          </span>
+      
+            <span class="planning-session-duree">
+                      ${formaterDuree(minutes)}
+                  </span>
+      
+          </div>
+            `;
       }
     }
 
@@ -1009,7 +1016,11 @@ function afficherDetailsJour(jourISO) {
   );
 
   const lignes = sessionsJour.map((session) => {
-    const nom = nomsUtilisateurs.get(String(session.user_id)) || "Utilisateur";
+    const nom =
+        session.nom_utilisateur ||
+        session.identifiant_utilisateur ||
+        nomsUtilisateurs.get(String(session.user_id)) ||
+        `Utilisateur ${session.user_id}`;
     const debut = formaterHeure(session.login_at);
     const fin = session.logout_at
       ? formaterHeure(session.logout_at)
