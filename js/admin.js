@@ -941,54 +941,6 @@ const { nom: nomSession } = trouverUtilisateurSession(session);
   }
 
 
-  for (const user of utilisateurs) {
-    const idUtilisateur = user.id ?? user.user_id;
-
-    const debutMois = `${annee}-${String(mois + 1).padStart(2, "0")}-01`;
-
-
-const sessionsUtilisateur = planningState.sessions.filter(session => {
-    return (
-        String(session.user_id) === String(idUtilisateur)
-        && String(session.login_at || "").slice(0, 7)
-            === `${annee}-${String(mois + 1).padStart(2, "0")}`
-    );
-});
-
-
-    const totalMinutes = sessionsUtilisateur.reduce((total, session) => {
-      return total + dureeSession(session);
-    }, 0);
-
-    const nomUtilisateur =
-        user.name ??
-        user.nom ??
-        user.username ??
-        user.login ??
-        `Utilisateur ${idUtilisateur}`;
-
-    html += `
-            <tr>
-                <td>${echapperHTML(nomUtilisateur)}</td>
-                <td>${sessionsUtilisateur.length}</td>
-                <td>${formaterDuree(totalMinutes)}</td>
-            </tr>
-        `;
-  }
-
-  html += `
-                    </tbody>
-                </table>
-            </div>
-            <p class="planning-note">
-                Les sessions sans heure de déconnexion sont calculées
-                jusqu'à l'heure actuelle.
-            </p>
-        </section>
-    `;
-
-  conteneur.innerHTML = html;
-
   document.getElementById("planningMoisPrecedent")
       ?.addEventListener("click", () => {
         planningState.date = new Date(annee, mois - 1, 1);
