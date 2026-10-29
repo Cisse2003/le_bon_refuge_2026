@@ -941,6 +941,9 @@ const { nom: nomSession } = trouverUtilisateurSession(session);
   }
 
 
+
+  conteneur.innerHTML = html;
+
   document.getElementById("planningMoisPrecedent")
       ?.addEventListener("click", () => {
         planningState.date = new Date(annee, mois - 1, 1);
