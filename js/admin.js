@@ -581,6 +581,32 @@ const planningState = {
   loading: false
 };
 
+
+/**
+ * Retrouve un utilisateur à partir de l'identifiant d'une session.
+ * Les informations proviennent de planningState.users.
+ */
+function trouverUtilisateurSession(session) {
+    const userId = session.user_id;
+
+    const utilisateur = planningState.users.find(user => {
+        const idUtilisateur = user.id ?? user.user_id;
+
+        return String(idUtilisateur) === String(userId);
+    });
+
+    return {
+        utilisateur,
+        nom: utilisateur?.nom
+            || utilisateur?.name
+            || utilisateur?.username
+            || utilisateur?.login
+            || session.nom_utilisateur
+            || session.identifiant_utilisateur
+            || `Utilisateur ${userId ?? "inconnu"}`
+};
+}
+
 const MOIS_FR = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre",
@@ -875,10 +901,9 @@ for (const session of sessionsDuCalendrier) {
     const minutes = dureeSession(session);
     const estEnCours = !session.logout_at;
 
-    const nomSession =
-        session.nom_utilisateur ||
-        session.identifiant_utilisateur ||
-        `Utilisateur ${session.user_id}`;
+
+const { nom: nomSession } = trouverUtilisateurSession(session);
+
 
     const tooltip = [
         nomSession,
@@ -937,17 +962,15 @@ for (const session of sessionsDuCalendrier) {
 
     const debutMois = `${annee}-${String(mois + 1).padStart(2, "0")}-01`;
 
-    const sessionsUtilisateur = planningState.sessions.filter(session => {
-      const identifiantUtilisateur =
-          user.username ?? user.login;
 
-      const memeUtilisateur =
-          session.identifiant_utilisateur === identifiantUtilisateur ||
-          session.nom_utilisateur === user.nom;
+const sessionsUtilisateur = planningState.sessions.filter(session => {
+    return (
+        String(session.user_id) === String(idUtilisateur)
+        && String(session.login_at || "").slice(0, 7)
+            === `${annee}-${String(mois + 1).padStart(2, "0")}`
+    );
+});
 
-      return memeUtilisateur &&
-          String(session.login_at).slice(0, 7) === debutMois.slice(0, 7);
-    });
 
     const totalMinutes = sessionsUtilisateur.reduce((total, session) => {
       return total + dureeSession(session);
@@ -1036,11 +1059,7 @@ function afficherDetailsJour(jourISO) {
     );
 
     const lignes = sessionsJour.map((session) => {
-      const nom =
-        session.nom_utilisateur ||
-        nomsUtilisateurs.get(String(session.user_id)) ||
-        session.identifiant_utilisateur ||
-        `Utilisateur ${session.user_id}`;
+      const { nom } = trouverUtilisateurSession(session);
 
       const debut = formaterHeure(session.login_at);
 
