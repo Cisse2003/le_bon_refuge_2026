@@ -17,7 +17,7 @@ try {
         strtotime($debutMois . ' +1 month')
     );
 
-$sql = "
+    $sql = "
     SELECT
         s.id,
         s.user_id,
@@ -32,16 +32,16 @@ $sql = "
     ORDER BY s.login_at ASC
 ";
 
-$stmt = $pdo->prepare($sql);
+    $stmt = $pdo->prepare($sql);
 
-$stmt->execute([
-    'debut_mois' => $debutMois,
-    'debut_mois_suivant' => $debutMoisSuivant
-]);
+    $stmt->execute([
+        'debut_mois' => $debutMois,
+        'debut_mois_suivant' => $debutMoisSuivant
+    ]);
 
-$sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-jsonResponse(['sessions' => $sessions]);
+    jsonResponse(['sessions' => $sessions]);
 
 
     echo '<pre>';
