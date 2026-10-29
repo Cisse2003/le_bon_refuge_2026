@@ -8,17 +8,10 @@ try {
 
     // 1. Table audit_logs (si nécessaire)
     $sqlTable = "
-    CREATE TABLE IF NOT EXISTS user_sessions (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    login_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    logout_at DATETIME NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    INDEX idx_user_sessions_user (user_id),
-    INDEX idx_user_sessions_login (login_at),
-    INDEX idx_user_sessions_logout (logout_at)
-);
+    SELECT id, user_id, login_at, logout_at
+FROM user_sessions
+ORDER BY login_at DESC
+LIMIT 30;
     ";
     $pdo->exec($sqlTable);
 

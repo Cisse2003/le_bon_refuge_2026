@@ -821,7 +821,12 @@ function afficherCalendrierPlanning() {
     const estAujourdhui = jourISO === aujourdHui;
 
     html += `
-            <div class="planning-case ${estAujourdhui ? "planning-aujourdhui-case" : ""}">
+            html += \`
+    <div class="planning-case ${estAujourdhui ? "planning-aujourdhui-case" : ""}"
+         data-planning-jour="${jourISO}"
+         tabindex="0"
+         role="button"
+         aria-label="Consulter les sessions du ${numeroJour}/${mois + 1}/${annee}">
                 <div class="planning-numero-jour">
                     ${numeroJour}
                 </div>
@@ -957,6 +962,119 @@ function afficherCalendrierPlanning() {
         planningState.date = new Date();
         chargerDonneesPlanning();
       });
+
+  // Rendre chaque journée interactive.
+  document.querySelectorAll("#contenuPlanning [data-planning-jour]")
+      .forEach((caseJour) => {
+        const ouvrir = () => afficherDetailsJour(caseJour.dataset.planningJour);
+
+        caseJour.addEventListener("click", ouvrir);
+
+        caseJour.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            ouvrir();
+          }
+        });
+      });
+
 }
+
+function afficherDetailsJour(jourISO) {
+  const date = new Date(`${jourISO}T12:00:00`);
+
+  const sessionsJour = planningState.sessions.filter((session) => {
+    const debut = String(session.login_at || "").slice(0, 10);
+    const fin = String(session.logout_at || "").slice(0, 10);
+
+    // Inclure une session qui chevauche la journée sélectionnée.
+    return debut <= jourISO && (!session.logout_at || fin >= jourISO);
+  });
+
+  const nomsUtilisateurs = new Map(
+    planningState.users.map((user) => [
+      String(user.id ?? user.user_id),
+      user.nom ?? user.username ?? user.name ?? "Utilisateur"
+    ])
+  );
+
+  const lignes = sessionsJour.map((session) => {
+    const nom = nomsUtilisateurs.get(String(session.user_id)) || "Utilisateur";
+    const debut = formaterHeure(session.login_at);
+    const fin = session.logout_at
+      ? formaterHeure(session.logout_at)
+      : "En cours";
+
+    const minutes = dureeSession(session);
+
+    return `
+<tr>
+<td>${echapperHTML(nom)}</td>
+<td>${echapperHTML(debut)}</td>
+<td>${echapperHTML(fin)}</td>
+<td>${formaterDuree(minutes)}</td>
+</tr>
+`;
+  }).join("");
+
+  const ancien = document.getElementById("modalDetailsPlanning");
+  if (ancien) ancien.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "modalDetailsPlanning";
+  modal.className = "modal-overlay open";
+
+  modal.innerHTML = `
+<section class="modal" role="dialog" aria-modal="true"
+aria-labelledby="titreDetailsPlanning">
+    <button type="button" class="modal-close"
+aria-label="Fermer">&times;</button>
+
+<h3 id="titreDetailsPlanning">
+  Sessions du ${date.toLocaleDateString("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric"
+})}
+</h3>
+
+${
+  sessionsJour.length
+      ? `
+            <div class="planning-table-wrapper">
+              <table class="planning-table">
+                <thead>
+                  <tr>
+                    <th>Utilisateur</th>
+                    <th>Connexion</th>
+                    <th>Déconnexion</th>
+                    <th>Durée</th>
+                  </tr>
+                </thead>
+                <tbody>${lignes}</tbody>
+              </table>
+            </div>
+          `
+      : `<p>Aucune session enregistrée pour cette journée.</p>`
+}
+</section>
+`;
+
+  document.body.appendChild(modal);
+
+  modal.querySelector(".modal-close").addEventListener("click", () => {
+    modal.remove();
+  });
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) modal.remove();
+  });
+
+  modal.querySelector(".modal").addEventListener("keydown", (event) => {
+    if (event.key === "Escape") modal.remove();
+  });
+}
+
 
 init();
