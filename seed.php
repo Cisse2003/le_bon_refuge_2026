@@ -17,23 +17,32 @@ try {
         strtotime($debutMois . ' +1 month')
     );
 
-    $sql = "
-        SELECT id, user_id, login_at, logout_at
-        FROM user_sessions
-        WHERE login_at >= :debut_mois
-          AND login_at < :debut_mois_suivant
-        ORDER BY login_at DESC
-    ";
+$sql = "
+    SELECT
+        s.id,
+        s.user_id,
+        u.nom AS nom_utilisateur,
+        u.username AS identifiant_utilisateur,
+        s.login_at,
+        s.logout_at
+    FROM user_sessions s
+    LEFT JOIN users u ON u.id = s.user_id
+    WHERE s.login_at >= :debut_mois
+      AND s.login_at < :debut_mois_suivant
+    ORDER BY s.login_at ASC
+";
 
-    // Préparer la requête et transmettre les paramètres.
-    $stmt = $pdo->prepare($sql);
+$stmt = $pdo->prepare($sql);
 
-    $stmt->execute([
-        'debut_mois' => $debutMois,
-        'debut_mois_suivant' => $debutMoisSuivant
-    ]);
+$stmt->execute([
+    'debut_mois' => $debutMois,
+    'debut_mois_suivant' => $debutMoisSuivant
+]);
 
-    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+jsonResponse(['sessions' => $sessions]);
+
 
     echo '<pre>';
     print_r($sessions);
