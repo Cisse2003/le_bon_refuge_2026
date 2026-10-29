@@ -449,98 +449,128 @@ function initialiserFormulaires() {
         });
     }
 
-    // D. Soumission Gâteau d'Anniversaire
-    const btnCommanderGateau = document.getElementById('btnCommanderGateau');
+        // D. Soumission Gâteau d'Anniversaire
+        const btnCommanderGateau = document.getElementById('btnCommanderGateau');
 
-    if (btnCommanderGateau) {
-        btnCommanderGateau.addEventListener('click', () => {
-            ouvrirModal('modalGateau');
-        });
-    }
-
-    const formGateau = document.getElementById('formGateau');
-
-    // Tarifs officiels de la carte des gâteaux
-    const tarifsGateau = {
-        Petit: {
-            non: 85000,
-            oui: 125000
-        },
-        Moyen: {
-            non: 105000,
-            oui: 155000
-        },
-        Grand: {
-            non: 200000,
-            oui: 255000
+        if (btnCommanderGateau) {
+            btnCommanderGateau.addEventListener('click', () => {
+                ouvrirModal('modalGateau');
+            });
         }
-    };
 
-    if (formGateau) {
-        formGateau.addEventListener('submit', (e) => {
-            e.preventDefault();
+        const formGateau = document.getElementById('formGateau');
+        const selectTailleGateau = document.getElementById('tailleGateau');
+        const selectChocolatGateau = document.getElementById('chocolatGateau');
+        const prixAfficheGateau = document.getElementById('prixGateau');
 
-            const formData = new FormData(formGateau);
+        // Correspondance avec les produits enregistrés dans seed.php
+        const produitsGateau = {
+            Petit: {
+                non: { id: 'p053', prix: 85000 },
+                oui: { id: 'p054', prix: 125000 }
+            },
+            Moyen: {
+                non: { id: 'p055', prix: 105000 },
+                oui: { id: 'p056', prix: 155000 }
+            },
+            Grand: {
+                non: { id: 'p057', prix: 200000 },
+                oui: { id: 'p058', prix: 255000 }
+            }
+        };
 
-            const taille = formData.get('taille');
-            const chocolat = formData.get('chocolat');
-            const texte = String(formData.get('texte') || '').trim();
-            const date = formData.get('date');
-            const heure = formData.get('heure');
-
-            // Vérification du format et de l'option chocolat
-            if (
-                !Object.prototype.hasOwnProperty.call(tarifsGateau, taille) ||
-                !['oui', 'non'].includes(chocolat)
-            ) {
-                alert('Veuillez choisir un format et une option chocolat valides.');
+        function actualiserPrixGateau() {
+            if (!selectTailleGateau || !selectChocolatGateau || !prixAfficheGateau) {
                 return;
             }
 
-            // Calcul du prix selon la carte officielle
-            const prix = tarifsGateau[taille][chocolat];
+            const taille = selectTailleGateau.value;
+            const chocolat = selectChocolatGateau.value;
+            const produit = produitsGateau[taille]?.[chocolat];
 
-            // Nom explicite du produit dans le panier
-            const optionChocolat = chocolat === 'oui'
-                ? 'Avec chocolat'
-                : 'Sans chocolat';
+            prixAfficheGateau.textContent = produit
+                ? formatMontant(produit.prix)
+                : 'Prix indisponible';
+        }
 
-            const nomGateau = `Gâteau d'anniversaire - ${taille} format (${optionChocolat})`;
+        if (selectTailleGateau && selectChocolatGateau) {
+            selectTailleGateau.addEventListener('change', actualiserPrixGateau);
+            selectChocolatGateau.addEventListener('change', actualiserPrixGateau);
 
-            // Création de l'article personnalisé
-            const itemGateau = {
-                id: 'gateau-' + Date.now(),
-                productId: null,
-                nom: nomGateau,
-                prix: prix,
+            actualiserPrixGateau();
+        }
+
+        if (formGateau) {
+            formGateau.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const formData = new FormData(formGateau);
+
+                const taille = formData.get('taille');
+                const chocolat = formData.get('chocolat');
+                const texte = String(formData.get('texte') || '').trim();
+                const date = formData.get('date');
+                const heure = formData.get('heure');
+
+                const produitTarife = produitsGateau[taille]?.[chocolat];
+
+                if (!produitTarife) {
+                    alert('Veuillez choisir un format et une option chocolat valides.');
+                    return;
+                }
+
+                // Retrouver le produit correspondant dans le menu chargé depuis l'API.
+                const produitBDD = MENU_DATA.find(
+                    p => String(p.id) === produitTarife.id
+                );
+
+                if (!produitBDD) {
+                    alert(
+                        'Le produit correspondant à ce gâteau est introuvable dans le menu. ' +
+                        'Vérifiez que seed.php a été exécuté et que les produits sont disponibles.'
+                    );
+                    return;
+                }
+
+                const nomChocolat = chocolat === 'oui'
+                    ? 'Avec chocolat'
+                    : 'Sans chocolat';
+
+                const itemGateau = {
+                    ...produitBDD,
+
+                    // Identifiant distinct pour chaque gâteau personnalisé dans le panier.
+                    id: genererIdUnique(),
+
+                    // Identifiant réel du produit dans la base de données.
+                    productId: produitBDD.id,
+
+                    nom: `Gâteau d'anniversaire - ${taille} format (${nomChocolat})`,
+            prix: Number(produitBDD.prix),
                 quantite: 1,
-                poste: 'cuisine',
-                options: [],
+                poste: produitBDD.poste || 'cuisine',
+
                 personnalisation: {
-                    type: 'gateau_anniversaire',
+                type: 'gateau_anniversaire',
                     taille: taille,
                     chocolat: chocolat === 'oui',
                     texte: texte,
                     date: date,
                     heure: heure
-                }
-            };
-
-            // Ajout au panier avec le tarif correspondant
-            Panier.ajouter(itemGateau);
-
-            // Fermeture de la fenêtre et réinitialisation du formulaire
-            fermerModal('modalGateau');
-            formGateau.reset();
-
-            // Réinitialisation du prix affiché à la valeur par défaut
-            const prixAffiche = document.getElementById('prixGateau');
-
-            if (prixAffiche) {
-                prixAffiche.textContent = '85 000 GNF';
             }
-        });
-    }
+        };
+
+                Panier.items.push(itemGateau);
+                Panier.mettreAJour();
+                Panier.ouvrirDrawer();
+
+                fermerModal('modalGateau');
+                formGateau.reset();
+
+                actualiserPrixGateau();
+                });
+        }
+
 }
 
 /* ==========================================================================
@@ -965,52 +995,64 @@ function getMenuFallback() {
 
         // Gâteaux d'anniversaire
         {
-            id: 39,
+            id: 'p053',
             nom: 'Gâteau Petit Format (Standard)',
             categorie: 'Gâteaux',
             prix: 85000,
-            description: 'Option sans chocolat.',
-            populaire: false
+            description: 'Gâteau d’anniversaire petit format sans chocolat.',
+            populaire: false,
+            disponible: true,
+            poste: 'cuisine'
         },
         {
-            id: 40,
+            id: 'p054',
             nom: 'Gâteau Petit Format (Chocolat)',
             categorie: 'Gâteaux',
             prix: 125000,
-            description: 'Gâteau nappé / fourré au chocolat.',
-            populaire: false
+            description: 'Gâteau d’anniversaire petit format avec chocolat.',
+            populaire: false,
+            disponible: true,
+            poste: 'cuisine'
         },
         {
-            id: 41,
+            id: 'p055',
             nom: 'Gâteau Moyen Format (Standard)',
             categorie: 'Gâteaux',
             prix: 105000,
-            description: 'Option sans chocolat.',
-            populaire: false
+            description: 'Gâteau d’anniversaire moyen format sans chocolat.',
+            populaire: false,
+            disponible: true,
+            poste: 'cuisine'
         },
         {
-            id: 42,
+            id: 'p056',
             nom: 'Gâteau Moyen Format (Chocolat)',
             categorie: 'Gâteaux',
             prix: 155000,
-            description: 'Gâteau nappé / fourré au chocolat.',
-            populaire: true
+            description: 'Gâteau d’anniversaire moyen format avec chocolat.',
+            populaire: false,
+            disponible: true,
+            poste: 'cuisine'
         },
         {
-            id: 43,
+            id: 'p057',
             nom: 'Gâteau Grand Format (Standard)',
             categorie: 'Gâteaux',
             prix: 200000,
-            description: 'Option sans chocolat.',
-            populaire: false
+            description: 'Gâteau d’anniversaire grand format sans chocolat.',
+            populaire: false,
+            disponible: true,
+            poste: 'cuisine'
         },
         {
-            id: 44,
+            id: 'p058',
             nom: 'Gâteau Grand Format (Chocolat)',
             categorie: 'Gâteaux',
             prix: 255000,
-            description: 'Gâteau nappé / fourré au chocolat.',
-            populaire: false
+            description: 'Gâteau d’anniversaire grand format avec chocolat.',
+            populaire: false,
+            disponible: true,
+            poste: 'cuisine'
         },
 
         // Suppléments
