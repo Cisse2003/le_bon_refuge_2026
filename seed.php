@@ -25,315 +25,15 @@ try {
 
     // 2. Liste des nouveaux plats (de p016 à p052)
     $nouveauxPlats = [
+
+
+        // Gâteaux d'anniversaire — tarifs officiels
         [
-            "id" => "p016",
-            "categorie" => "Plats Chauds",
-            "nom" => "Riz gras poulet / poisson",
-            "description" => "Riz gras traditionnel servi avec du poulet ou du poisson.",
-            "prix" => 25000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => ["Poulet", "Poisson"],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing012", "quantite" => 250],
-                ["ingredientId" => "ing001", "quantite" => 150]
-            ]
-        ],
-        [
-            "id" => "p017",
-            "categorie" => "Plats Chauds",
-            "nom" => "Riz gras à la viande",
-            "description" => "Riz gras traditionnel servi avec de la viande.",
-            "prix" => 30000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing012", "quantite" => 250],
-                ["ingredientId" => "ing003", "quantite" => 150]
-            ]
-        ],
-        [
-            "id" => "p018",
-            "categorie" => "Plats Chauds",
-            "nom" => "Garba poulet / poisson",
-            "description" => "Semoule de manioc accompagnée de poulet ou de poisson.",
-            "prix" => 50000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => ["Poulet", "Poisson"],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing013", "quantite" => 200],
-                ["ingredientId" => "ing001", "quantite" => 150]
-            ]
-        ],
-        [
-            "id" => "p019",
-            "categorie" => "Plats Chauds",
-            "nom" => "Petit pois au poulet",
-            "description" => "Plat de petits pois mijotés au poulet.",
-            "prix" => 40000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing014", "quantite" => 200],
-                ["ingredientId" => "ing001", "quantite" => 150]
-            ]
-        ],
-        [
-            "id" => "p020",
-            "categorie" => "Plats Chauds",
-            "nom" => "Petit pois à la viande",
-            "description" => "Plat de petits pois mijotés à la viande.",
-            "prix" => 45000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing014", "quantite" => 200],
-                ["ingredientId" => "ing003", "quantite" => 150]
-            ]
-        ],
-        [
-            "id" => "p021",
-            "categorie" => "Plats Chauds",
-            "nom" => "Spaghetti au poulet",
-            "description" => "Spaghettis sautés ou en sauce servis avec du poulet.",
-            "prix" => 20000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing015", "quantite" => 150],
-                ["ingredientId" => "ing001", "quantite" => 100]
-            ]
-        ],
-        [
-            "id" => "p022",
-            "categorie" => "Plats Chauds",
-            "nom" => "Spaghetti à la viande",
-            "description" => "Spaghettis servis avec de la viande.",
-            "prix" => 20000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing015", "quantite" => 150],
-                ["ingredientId" => "ing003", "quantite" => 100]
-            ]
-        ],
-        [
-            "id" => "p023",
-            "categorie" => "Plats Chauds",
-            "nom" => "Spaghetti bolognaise",
-            "description" => "Spaghettis à la sauce bolognaise.",
-            "prix" => 25000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-                ["ingredientId" => "ing015", "quantite" => 150],
-                ["ingredientId" => "ing003", "quantite" => 100]
-            ]
-        ],
-        [
-            "id" => "p024",
-            "categorie" => "Pizzas",
-            "nom" => "Pizza Poulet",
-            "description"=> "Sauce tomate, mozzarella et morceaux de poulet.",
-            "prix" => 90000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => ["Petite", "Moyenne", "Grande"],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing005", "quantite" => 1],
-        ["ingredientId" => "ing001", "quantite" => 100]
-    ]
-        ],
-        [
-            "id" => "p025",
-            "categorie" => "Pizzas",
-            "nom" => "Pizza Viande",
-            "description"=> "Sauce tomate, mozzarella et viande hachée.",
-            "prix" => 95000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => ["Petite", "Moyenne", "Grande"],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing005", "quantite" => 1],
-        ["ingredientId" => "ing003", "quantite" => 100]
-    ]
-        ],
-        [
-            "id" => "p026",
-            "categorie" => "Pizzas",
-            "nom" => "Pizza Thongwenmo",
-            "description"=> "Spécialité de pizza de la maison.",
-            "prix" => 100000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => ["Petite", "Moyenne", "Grande"],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing005", "quantite" => 1]
-    ]
-        ],
-        [
-            "id" => "p027",
-            "categorie" => "Poulet Braisé",
-            "nom" => "Demi-poulet braisé",
-            "description"=> "Demi-poulet braisé servi avec frites ou alloco.",
-            "prix" => 55000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => ["Frites", "Alloco"],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing001", "quantite" => 250],
-        ["ingredientId" => "ing007", "quantite" => 100]
-    ]
-        ],
-        [
-            "id" => "p028",
-            "categorie" => "Poulet Braisé",
-            "nom" => "Poulet entier braisé",
-            "description"=> "Poulet entier braisé servi avec frites ou alloco.",
-            "prix" => 110000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => ["Frites", "Alloco"],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing001", "quantite" => 500],
-        ["ingredientId" => "ing007", "quantite" => 200]
-    ]
-        ],
-        [
-            "id" => "p029",
-            "categorie" => "Fast-food",
-            "nom" => "Burger viande",
-            "description"=> "Burger garni de viande avec frites.",
-            "prix" => 55000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing003", "quantite" => 150],
-        ["ingredientId" => "ing007", "quantite" => 100]
-    ]
-        ],
-        [
-            "id" => "p030",
-            "categorie" => "Fast-food",
-            "nom" => "Shawarma à la viande",
-            "description"=> "Shawarma savoureux à la viande.",
-            "prix" => 30000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing003", "quantite" => 120]
-    ]
-        ],
-        [
-            "id" => "p031",
-            "categorie" => "Fast-food",
-            "nom" => "Tacos poulet",
-            "description"=> "Tacos garni au poulet.",
-            "prix" => 65000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing001", "quantite" => 150]
-    ]
-        ],
-        [
-            "id" => "p032",
-            "categorie" => "Fast-food",
-            "nom" => "Tacos viande hachée",
-            "description"=> "Tacos garni à la viande hachée.",
-            "prix" => 75000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing003", "quantite" => 150]
-    ]
-        ],
-        [
-            "id" => "p033",
-            "categorie" => "Fataya",
-            "nom" => "Fataya poulet",
-            "description"=> "Beignets farcis au poulet.",
-            "prix" => 20000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing001", "quantite" => 80]
-    ]
-        ],
-        [
-            "id" => "p034",
-            "categorie" => "Fataya",
-            "nom" => "Fataya viande",
-            "description"=> "Beignets farcis à la viande.",
-            "prix" => 25000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => [
-        ["ingredientId" => "ing003", "quantite" => 80]
-    ]
-        ],
-        [
-            "id" => "p035",
-            "categorie" => "Crèmerie",
-            "nom" => "Glace petit format",
-            "description"=> "Glace format individuel.",
-            "prix" => 5000,
-            "photo" => "",
-            "poste" => "cremerie",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p036",
-            "categorie" => "Crèmerie",
-            "nom" => "Glace grand format",
-            "description"=> "Glace grand format.",
-            "prix" => 10000,
-            "photo" => "",
-            "poste" => "cremerie",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p037",
-            "categorie" => "Boissons",
-            "nom" => "Fanta",
-            "description"=> "Boisson gazeuse Fanta.",
-            "prix" => 10000,
+            "id" => "p053",
+            "categorie" => "Gâteaux",
+            "nom" => "Gâteau Petit Format (Standard)",
+            "description" => "Gâteau d'anniversaire petit format, sans chocolat. Découpage offert si vous fêtez dans le restaurant.",
+            "prix" => 85000,
             "photo" => "",
             "poste" => "cuisine",
             "options" => [],
@@ -341,11 +41,11 @@ try {
             "recette" => []
         ],
         [
-            "id" => "p038",
-            "categorie" => "Boissons",
-            "nom" => "Coca",
-            "description"=> "Boisson gazeuse Coca-Cola.",
-            "prix" => 10000,
+            "id" => "p054",
+            "categorie" => "Gâteaux",
+            "nom" => "Gâteau Petit Format (Chocolat)",
+            "description" => "Gâteau d'anniversaire petit format avec chocolat. Découpage offert si vous fêtez dans le restaurant.",
+            "prix" => 125000,
             "photo" => "",
             "poste" => "cuisine",
             "options" => [],
@@ -353,11 +53,11 @@ try {
             "recette" => []
         ],
         [
-            "id" => "p039",
-            "categorie" => "Boissons",
-            "nom" => "Sagiko",
-            "description"=> "Boisson Sagiko.",
-            "prix" => 10000,
+            "id" => "p055",
+            "categorie" => "Gâteaux",
+            "nom" => "Gâteau Moyen Format (Standard)",
+            "description" => "Gâteau d'anniversaire moyen format, sans chocolat. Découpage offert si vous fêtez dans le restaurant.",
+            "prix" => 105000,
             "photo" => "",
             "poste" => "cuisine",
             "options" => [],
@@ -365,11 +65,11 @@ try {
             "recette" => []
         ],
         [
-            "id" => "p040",
-            "categorie" => "Boissons",
-            "nom" => "Fruitalos",
-            "description"=> "Jus Fruitalos.",
-            "prix" => 9000,
+            "id" => "p056",
+            "categorie" => "Gâteaux",
+            "nom" => "Gâteau Moyen Format (Chocolat)",
+            "description" => "Gâteau d'anniversaire moyen format avec chocolat. Découpage offert si vous fêtez dans le restaurant.",
+            "prix" => 155000,
             "photo" => "",
             "poste" => "cuisine",
             "options" => [],
@@ -377,11 +77,11 @@ try {
             "recette" => []
         ],
         [
-            "id" => "p041",
-            "categorie" => "Boissons",
-            "nom" => "Comando",
-            "description"=> "Boisson Comando.",
-            "prix" => 11000,
+            "id" => "p057",
+            "categorie" => "Gâteaux",
+            "nom" => "Gâteau Grand Format (Standard)",
+            "description" => "Gâteau d'anniversaire grand format, sans chocolat. Découpage offert si vous fêtez dans le restaurant.",
+            "prix" => 200000,
             "photo" => "",
             "poste" => "cuisine",
             "options" => [],
@@ -389,131 +89,11 @@ try {
             "recette" => []
         ],
         [
-            "id" => "p042",
-            "categorie" => "Boissons",
-            "nom" => "Vimto",
-            "description"=> "Boisson Vimto.",
-            "prix" => 11000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p043",
-            "categorie" => "Boissons",
-            "nom" => "Red Bull",
-            "description"=> "Boisson énergisante Red Bull.",
-            "prix" => 24000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p044",
-            "categorie" => "Boissons",
-            "nom" => "Caprisun",
-            "description"=> "Jus de fruits Caprisun.",
-            "prix" => 5000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p045",
-            "categorie" => "Boissons",
-            "nom" => "Jus bidon",
-            "description"=> "Jus en format bidon.",
-            "prix" => 7000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p046",
-            "categorie" => "Boissons",
-            "nom" => "Jus carton",
-            "description"=> "Jus en format carton.",
-            "prix" => 24000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p047",
-            "categorie" => "Boissons",
-            "nom" => "Eau petit bidon",
-            "description"=> "Eau minérale petit bidon.",
-            "prix" => 5000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p048",
-            "categorie" => "Boissons",
-            "nom" => "Eau grand bidon",
-            "description"=> "Eau minérale grand bidon.",
-            "prix" => 9000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p049",
-            "categorie" => "Boissons",
-            "nom" => "Lait Manan grand",
-            "description"=> "Lait Manan grand format.",
-            "prix" => 29000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p050",
-            "categorie" => "Boissons",
-            "nom" => "Lait Manan petit",
-            "description"=> "Lait Manan petit format.",
-            "prix" => 18000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p051",
-            "categorie" => "Boissons",
-            "nom" => "Lait Malipan grand",
-            "description"=> "Lait Malipan grand format.",
-            "prix" => 24000,
-            "photo" => "",
-            "poste" => "cuisine",
-            "options" => [],
-            "disponible" => 1,
-            "recette" => []
-        ],
-        [
-            "id" => "p052",
-            "categorie" => "Boissons",
-            "nom" => "Lait Malipan petit",
-            "description"=> "Lait Malipan petit format.",
-            "prix" => 18000,
+            "id" => "p058",
+            "categorie" => "Gâteaux",
+            "nom" => "Gâteau Grand Format (Chocolat)",
+            "description" => "Gâteau d'anniversaire grand format avec chocolat. Découpage offert si vous fêtez dans le restaurant.",
+            "prix" => 255000,
             "photo" => "",
             "poste" => "cuisine",
             "options" => [],
