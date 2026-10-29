@@ -1,23 +1,26 @@
+
 <?php
-// seed.php - Script pour ajouter/mettre à jour les nouveaux plats dans la base MySQL
+// seed.php - Afficher les 30 dernières sessions utilisateur
 
 require_once __DIR__ . '/includes/db.php';
 
 try {
     $pdo = getDB();
 
-    // 1. Table audit_logs (si nécessaire)
-    $sqlTable = "
-    SELECT id, user_id, login_at, logout_at
-FROM user_sessions
-ORDER BY login_at DESC
-LIMIT 30;
+    $sql = "
+        SELECT id, user_id, login_at, logout_at
+        FROM user_sessions
+        ORDER BY login_at DESC
+        LIMIT 30
     ";
-    $pdo->exec($sqlTable);
 
+    $stmt = $pdo->query($sql);
+    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    echo "Well Done !\n";
+    echo "<pre>";
+    print_r($sessions);
+    echo "</pre>";
 
-} catch (Exception $e) {
-    die("Erreur : " . $e->getMessage() . "\n");
+} catch (PDOException $e) {
+    die("Erreur SQL : " . $e->getMessage());
 }
