@@ -821,7 +821,6 @@ function afficherCalendrierPlanning() {
     const estAujourdhui = jourISO === aujourdHui;
 
     html += `
-            html += \`
     <div class="planning-case ${estAujourdhui ? "planning-aujourdhui-case" : ""}"
          data-planning-jour="${jourISO}"
          tabindex="0"
