@@ -9,11 +9,13 @@ try {
 
     $sql = "
         SELECT
-    NOW() AS heure_mysql,
-    CURDATE() AS date_mysql,
-    MAX(login_at) AS derniere_connexion,
-    COUNT(*) AS nombre_sessions
-FROM user_sessions;
+    id,
+    user_id,
+    login_at,
+    logout_at
+FROM user_sessions
+WHERE login_at > NOW()
+ORDER BY login_at ASC;
     ";
 
     $stmt = $pdo->query($sql);
