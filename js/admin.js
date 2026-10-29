@@ -700,8 +700,8 @@ async function chargerDonneesPlanning() {
     ).padStart(2, "0");
 
     const [reponseUsers, reponseSessions] = await Promise.all([
-      api("GET", "/api/users"),
-      api("GET", `/api/admin/sessions?month=${annee}-${mois}`)
+      apiGet("/api/users"),
+      apiGet(`/api/admin/sessions?month=${annee}-${mois}`)
     ]);
 
     /*

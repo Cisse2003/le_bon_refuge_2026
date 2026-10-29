@@ -79,6 +79,17 @@ if ($segments[0] === 'auth') {
             'role' => $user['role'],
             'nom' => $user['nom'],
         ];
+
+        // Enregistrer la connexion dans le planning
+        $stmtSession = $pdo->prepare(
+            'INSERT INTO user_sessions (user_id, login_at) VALUES (?, NOW())'
+        );
+
+        $stmtSession->execute([$user['id']]);
+
+        // Mémoriser l'identifiant de cette connexion
+        $_SESSION['user_session_id'] = $pdo->lastInsertId();
+
         logAction([
             'utilisateur' => $user['username'],
             'role'        => $user['role'],
@@ -86,19 +97,36 @@ if ($segments[0] === 'auth') {
         ]);
         jsonResponse(['user' => $_SESSION['user']]);
     }
-    if ($method === 'POST' && $action === 'logout') {
-        $user = currentUser();
-        if ($user) {
-            logAction([
-                'utilisateur' => $user['username'],
-                'role'        => $user['role'],
-                'action'      => 'DECONNEXION'
-            ]);
+
+        if ($method === 'POST' && $action === 'logout') {
+            $user = currentUser();
+
+            if ($user) {
+                logAction([
+                    'utilisateur' => $user['username'],
+                    'role'        => $user['role'],
+                    'action'      => 'DECONNEXION'
+                ]);
+
+                // Fermer la session enregistrée dans le planning
+                $sessionId = $_SESSION['user_session_id'] ?? null;
+
+                if ($sessionId) {
+                    $stmtSession = $pdo->prepare(
+                        'UPDATE user_sessions
+                         SET logout_at = NOW()
+                         WHERE id = ? AND user_id = ? AND logout_at IS NULL'
+                    );
+
+                    $stmtSession->execute([$sessionId, $user['id']]);
+                }
+            }
+
+            $_SESSION = [];
+            session_destroy();
+
+            jsonResponse(['ok' => true]);
         }
-        $_SESSION = [];
-        session_destroy();
-        jsonResponse(['ok' => true]);
-    }
     if ($method === 'GET' && $action === 'me') {
         jsonResponse(['user' => currentUser()]);
     }
@@ -655,6 +683,57 @@ if ($segments[0] === 'ingredients') {
     }
     jsonError('Route ingredients inconnue', 404);
 }
+
+// --- ADMIN : PLANNING DES CONNEXIONS ---
+if (($segments[0] ?? '') === 'admin' && ($segments[1] ?? '') === 'sessions') {
+
+    if ($method === 'GET') {
+        // Réservé à l'administration
+        requireRole('admin');
+
+        // Format attendu : ?month=2026-10
+        $mois = $_GET['month'] ?? date('Y-m');
+
+        // Vérifier le format du mois
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mois)) {
+            jsonError('Format du mois invalide. Format attendu : YYYY-MM', 400);
+        }
+
+        // Début du mois et début du mois suivant
+        $debutMois = $mois . '-01 00:00:00';
+        $debutMoisSuivant = date(
+            'Y-m-d H:i:s',
+            strtotime($debutMois . ' +1 month')
+        );
+
+        // Récupérer les sessions du mois demandé
+        $sql = "
+            SELECT
+                id,
+                user_id,
+                login_at,
+                logout_at
+            FROM user_sessions
+            WHERE login_at >= :debut_mois
+              AND login_at < :debut_mois_suivant
+            ORDER BY login_at ASC
+        ";
+
+        $stmt = $pdo->prepare($sql);
+
+        $stmt->execute([
+            'debut_mois' => $debutMois,
+            'debut_mois_suivant' => $debutMoisSuivant
+        ]);
+
+        $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        jsonResponse(['sessions' => $sessions]);
+    }
+
+    jsonError('Méthode non autorisée', 405);
+}
+
 
 // --- USERS ---
 if ($segments[0] === 'users') {
