@@ -608,205 +608,367 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
 .overlay.open, .overlay.active { opacity: 1; pointer-events: auto; }
 
 
-/* ==========================================================
-   PLANNING MENSUEL — LE BON REFUGE
-   ========================================================== */
+     /* ==========================================================
+        PLANNING MENSUEL — LE BON REFUGE
+        Calendrier responsive assorti au design du site
+        ========================================================== */
 
-.planning-calendrier,
-.planning-recap {
-  width: 100%;
-  margin-bottom: 24px;
+   .planning-calendrier,
+   .planning-recap {
+     width: 100%;
+     min-width: 0;
+     margin-bottom: 24px;
+     color: var(--paper);
+   }
+
+/* Conteneur principal du calendrier */
+.planning-calendrier {
+  background: var(--bg-raised);
+  border: 1px solid rgba(246, 239, 225, 0.08);
+  border-radius: 12px;
+  padding: clamp(12px, 2vw, 24px);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
+/* En-tête : navigation et titre */
 .planning-entete {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .planning-entete h3 {
-  flex: 1;
-  text-align: center;
   margin: 0;
-  font-size: 1.35rem;
+  text-align: center;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  letter-spacing: 0.04em;
 }
 
+/* Boutons de navigation */
 .planning-navigation,
 .planning-aujourdhui {
-  border: 1px solid var(--accent, #e8a33d);
-  border-radius: 8px;
-  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--paper-dim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  font: inherit;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+          background-color 0.2s ease,
+          color 0.2s ease,
+          border-color 0.2s ease;
 }
 
 .planning-navigation {
-  font-size: 1.2rem;
   min-width: 42px;
+  padding: 8px 12px;
+  font-size: 1.1rem;
 }
 
 .planning-navigation:hover,
 .planning-aujourdhui:hover {
-  background: var(--accent, #e8a33d);
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-dark);
 }
 
+.planning-navigation:focus-visible,
+.planning-aujourdhui:focus-visible {
+  outline: 3px solid var(--paper);
+  outline-offset: 3px;
+}
+
+/* Ligne contenant le bouton Aujourd'hui */
+.planning-controles {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+/* Légende des sessions */
 .planning-legende {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 15px;
+  align-items: center;
+  gap: 10px 18px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(246, 239, 225, 0.07);
+  border-radius: 8px;
+  color: var(--paper-dim);
   font-size: 0.88rem;
 }
 
+.planning-legende > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Grille : 7 colonnes pour les jours de la semaine */
 .planning-grille {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  border-top: 1px solid rgba(128, 128, 128, 0.25);
-  border-left: 1px solid rgba(128, 128, 128, 0.25);
+  width: 100%;
+  border-top: 1px solid rgba(246, 239, 225, 0.14);
+  border-left: 1px solid rgba(246, 239, 225, 0.14);
   border-radius: 8px;
-  overflow: visible;
+  overflow: hidden;
 }
 
+/* En-têtes Lundi, Mardi, etc. */
 .planning-jour-entete {
-  text-align: center;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
   padding: 12px 4px;
-  background: rgba(128, 128, 128, 0.08);
-  border-right: 1px solid rgba(128, 128, 128, 0.25);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+  background: var(--bg-raised-2);
+  color: var(--accent);
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-right: 1px solid rgba(246, 239, 225, 0.14);
+  border-bottom: 1px solid rgba(246, 239, 225, 0.14);
 }
 
+/* Cases individuelles */
 .planning-case {
-  min-width: 0;
-  min-height: 115px;
-  padding: 7px;
   position: relative;
-  border-right: 1px solid rgba(128, 128, 128, 0.25);
-  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
-  background: var(--paper, #fff);
+  min-width: 0;
+  min-height: 125px;
+  padding: 8px;
+  background: var(--bg-raised);
+  border-right: 1px solid rgba(246, 239, 225, 0.14);
+  border-bottom: 1px solid rgba(246, 239, 225, 0.14);
+  overflow-wrap: anywhere;
+  transition: background-color 0.15s ease;
+}
+
+.planning-case:hover {
+  background: var(--bg-raised-2);
 }
 
 .planning-case-vide {
-  background: rgba(128, 128, 128, 0.04);
+  background: rgba(0, 0, 0, 0.12);
 }
 
 .planning-aujourdhui-case {
-  box-shadow: inset 0 0 0 2px var(--accent, #e8a33d);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: rgba(232, 163, 61, 0.07);
 }
 
+/* Numéro du jour */
 .planning-numero-jour {
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   margin-bottom: 8px;
+  border-radius: 50%;
+  color: var(--paper);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
+.planning-aujourdhui-case .planning-numero-jour {
+  background: var(--accent);
+  color: var(--text-dark);
+}
+
+/* Sessions présentes dans une case */
 .planning-sessions {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .planning-session {
+  display: block;
   min-width: 0;
-  padding: 6px;
-  border-radius: 5px;
-  cursor: help;
-  font-size: 0.78rem;
+  padding: 7px;
+  border-radius: 6px;
+  color: var(--paper);
+  font-size: 0.76rem;
+  line-height: 1.4;
   overflow-wrap: anywhere;
+  cursor: help;
 }
 
 .planning-session-terminee {
-  background: rgba(45, 150, 90, 0.13);
-  border-left: 3px solid #2d965a;
+  background: rgba(90, 157, 111, 0.16);
+  border-left: 3px solid var(--success);
 }
 
 .planning-session-active {
-  background: rgba(232, 163, 61, 0.18);
-  border-left: 3px solid var(--accent, #e8a33d);
+  background: rgba(232, 163, 61, 0.14);
+  border-left: 3px solid var(--accent);
 }
 
 .planning-session-nom {
   display: block;
+  margin-bottom: 3px;
+  color: var(--paper);
   font-weight: 700;
 }
 
 .planning-session-duree {
   display: block;
-  margin-top: 3px;
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
 }
 
 .planning-session:focus-visible {
-  outline: 2px solid var(--accent, #e8a33d);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
+/* Tableau récapitulatif */
 .planning-table-wrapper {
   width: 100%;
   overflow-x: auto;
+  border-radius: 8px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .planning-table {
   width: 100%;
   border-collapse: collapse;
+  color: var(--paper);
+  font-size: 0.88rem;
 }
 
 .planning-table th,
 .planning-table td {
   padding: 12px;
   text-align: left;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  border-bottom: 1px solid rgba(246, 239, 225, 0.1);
 }
 
 .planning-table th {
-  background: rgba(128, 128, 128, 0.08);
+  background: var(--bg-raised-2);
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.planning-table tbody tr:hover {
+  background: rgba(246, 239, 225, 0.04);
 }
 
 .planning-note {
-  font-size: 0.88rem;
-  opacity: 0.8;
   margin-top: 12px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
 }
 
 .planning-erreur {
   padding: 16px;
-  border-left: 4px solid #c0392b;
-  border-radius: 6px;
-  background: rgba(192, 57, 43, 0.08);
+  border-left: 4px solid var(--danger);
+  border-radius: 8px;
+  background: rgba(208, 86, 74, 0.1);
+  color: var(--paper);
 }
 
+/* Tablettes */
 @media (max-width: 850px) {
+  .planning-calendrier {
+    padding: 12px;
+  }
+
   .planning-case {
-    min-height: 90px;
-    padding: 4px;
-  }
-
-  .planning-session {
-    font-size: 0.68rem;
-    padding: 4px;
-  }
-
-  .planning-session-duree {
-    font-size: 0.65rem;
+    min-height: 100px;
+    padding: 5px;
   }
 
   .planning-jour-entete {
-    font-size: 0.75rem;
-    overflow-wrap: anywhere;
+    font-size: 0.72rem;
+    padding: 10px 2px;
+  }
+
+  .planning-session {
+    padding: 5px;
+    font-size: 0.7rem;
+  }
+
+  .planning-session-duree {
+    font-size: 0.63rem;
   }
 }
 
+/* Mobiles */
 @media (max-width: 550px) {
+  .planning-entete {
+    grid-template-columns: auto 1fr auto;
+    gap: 5px;
+  }
+
   .planning-entete h3 {
-    flex-basis: 100%;
-    order: -1;
+    font-size: 1.15rem;
+  }
+
+  .planning-navigation {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 5px 8px;
+  }
+
+  .planning-aujourdhui {
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .planning-legende {
+    gap: 8px 12px;
+    padding: 10px;
+    font-size: 0.76rem;
   }
 
   .planning-case {
-    min-height: 70px;
+    min-height: 72px;
+    padding: 3px;
+  }
+
+  .planning-jour-entete {
+    padding: 8px 1px;
+    font-size: 0.65rem;
+    overflow-wrap: anywhere;
+  }
+
+  .planning-numero-jour {
+    width: 24px;
+    height: 24px;
+    margin: 0 auto 5px;
+    font-size: 0.75rem;
+  }
+
+  .planning-sessions {
+    gap: 3px;
+  }
+
+  .planning-session {
+    padding: 3px;
+    font-size: 0.65rem;
   }
 
   .planning-session-nom {
@@ -814,6 +976,284 @@ th { font-family: var(--font-mono); text-transform: uppercase; font-size: 0.72re
   }
 
   .planning-session-duree {
-    font-size: 0.65rem;
+    font-size: 0.58rem;
+  }
+}
+     /* ==========================================================
+        CORRECTION PRIORITAIRE — GRILLE DU PLANNING
+        À placer tout à la fin de style.css
+        ========================================================== */
+
+     /* Conteneur du calendrier */
+   #contenuPlanning {
+     width: 100%;
+     min-width: 0;
+     color: var(--paper);
+   }
+
+#contenuPlanning .planning-calendrier {
+  width: 100%;
+  min-width: 0;
+  padding: 20px;
+  overflow: hidden;
+  background: var(--bg-raised);
+  border: 1px solid rgba(246, 239, 225, 0.08);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+/* En-tête du mois */
+#contenuPlanning .planning-entete {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+#contenuPlanning .planning-entete h3 {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--paper);
+}
+
+/* Boutons */
+#contenuPlanning .planning-navigation,
+#contenuPlanning .planning-aujourdhui {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--paper-dim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#contenuPlanning .planning-navigation:hover,
+#contenuPlanning .planning-aujourdhui:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-dark);
+}
+
+/* Légende */
+#contenuPlanning .planning-legende {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  margin-bottom: 16px;
+  color: var(--paper);
+}
+
+/* Grille : sept colonnes obligatoires */
+#contenuPlanning .planning-grille {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  grid-auto-flow: row;
+  width: 100%;
+  min-width: 0;
+  border-top: 1px solid rgba(246, 239, 225, 0.15);
+  border-left: 1px solid rgba(246, 239, 225, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* En-têtes des jours */
+#contenuPlanning .planning-jour-entete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 12px 3px;
+  background: var(--bg-raised-2);
+  color: var(--accent);
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-right: 1px solid rgba(246, 239, 225, 0.15);
+  border-bottom: 1px solid rgba(246, 239, 225, 0.15);
+}
+
+/* Cases des dates */
+#contenuPlanning .planning-case {
+  display: block;
+  min-width: 0;
+  min-height: 120px;
+  padding: 8px;
+  background: var(--bg-raised);
+  border-right: 1px solid rgba(246, 239, 225, 0.15);
+  border-bottom: 1px solid rgba(246, 239, 225, 0.15);
+}
+
+#contenuPlanning .planning-case-vide {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+#contenuPlanning .planning-aujourdhui-case {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* Numéro du jour */
+#contenuPlanning .planning-numero-jour {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 8px;
+  color: var(--paper);
+  font-weight: 700;
+}
+
+#contenuPlanning .planning-aujourdhui-case .planning-numero-jour {
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--text-dark);
+}
+
+/* Sessions */
+#contenuPlanning .planning-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+#contenuPlanning .planning-session {
+  display: block;
+  min-width: 0;
+  padding: 6px;
+  border-radius: 5px;
+  color: var(--paper);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+#contenuPlanning .planning-session-terminee {
+  background: rgba(90, 157, 111, 0.16);
+  border-left: 3px solid var(--success);
+}
+
+#contenuPlanning .planning-session-active {
+  background: rgba(232, 163, 61, 0.16);
+  border-left: 3px solid var(--accent);
+}
+
+#contenuPlanning .planning-session-nom,
+#contenuPlanning .planning-session-duree {
+  display: block;
+}
+
+#contenuPlanning .planning-session-nom {
+  margin-bottom: 3px;
+  font-weight: 700;
+}
+
+#contenuPlanning .planning-session-duree {
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+
+/* Tableau récapitulatif */
+#contenuPlanning .planning-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#contenuPlanning .planning-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--paper);
+}
+
+#contenuPlanning .planning-table th {
+  background: var(--bg-raised-2);
+  color: var(--accent);
+}
+
+#contenuPlanning .planning-table th,
+#contenuPlanning .planning-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(246, 239, 225, 0.12);
+}
+
+/* Tablettes */
+@media (max-width: 850px) {
+  #contenuPlanning .planning-calendrier {
+    padding: 12px;
+  }
+
+  #contenuPlanning .planning-case {
+    min-height: 90px;
+    padding: 5px;
+  }
+
+  #contenuPlanning .planning-jour-entete {
+    font-size: 0.7rem;
+  }
+
+  #contenuPlanning .planning-session {
+    font-size: 0.68rem;
+  }
+}
+
+/* Mobiles */
+@media (max-width: 550px) {
+  #contenuPlanning .planning-entete {
+    grid-template-columns: 36px minmax(0, 1fr) 36px;
+    gap: 5px;
+  }
+
+  #contenuPlanning .planning-entete h3 {
+    font-size: 1.2rem;
+  }
+
+  #contenuPlanning .planning-aujourdhui {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  #contenuPlanning .planning-navigation {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 5px;
+  }
+
+  #contenuPlanning .planning-case {
+    min-height: 68px;
+    padding: 3px;
+  }
+
+  #contenuPlanning .planning-jour-entete {
+    padding: 8px 1px;
+    font-size: 0.62rem;
+    overflow-wrap: anywhere;
+  }
+
+  #contenuPlanning .planning-numero-jour {
+    width: 24px;
+    height: 24px;
+    margin: 0 auto 5px;
+    font-size: 0.75rem;
+  }
+
+  #contenuPlanning .planning-session-nom {
+    display: none;
+  }
+
+  #contenuPlanning .planning-session-duree {
+    font-size: 0.58rem;
   }
 }

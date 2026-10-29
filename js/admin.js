@@ -900,8 +900,11 @@ function afficherCalendrierPlanning() {
   for (const user of utilisateurs) {
     const idUtilisateur = user.id ?? user.user_id;
 
+    const debutMois = `${annee}-${String(mois + 1).padStart(2, "0")}-01`;
+
     const sessionsUtilisateur = planningState.sessions.filter(session => {
-      return String(session.user_id) === String(idUtilisateur);
+      return String(session.user_id) === String(idUtilisateur)
+          && String(session.login_at).slice(0, 7) === debutMois.slice(0, 7);
     });
 
     const totalMinutes = sessionsUtilisateur.reduce((total, session) => {
