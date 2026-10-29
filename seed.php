@@ -8,10 +8,12 @@ try {
     $pdo = getDB();
 
     $sql = "
-        SELECT id, user_id, login_at, logout_at
-        FROM user_sessions
-        ORDER BY login_at DESC
-        LIMIT 30
+        SELECT
+    NOW() AS heure_mysql,
+    CURDATE() AS date_mysql,
+    MAX(login_at) AS derniere_connexion,
+    COUNT(*) AS nombre_sessions
+FROM user_sessions;
     ";
 
     $stmt = $pdo->query($sql);
