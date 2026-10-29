@@ -537,7 +537,7 @@ function initialiserFormulaires() {
             const prixAffiche = document.getElementById('prixGateau');
 
             if (prixAffiche) {
-                prixAffiche.textContent = '85 000 FG';
+                prixAffiche.textContent = '85 000 GNF';
             }
         });
     }

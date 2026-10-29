@@ -292,9 +292,9 @@
     <form id="formGateau">
       <label for="tailleGateau">Format du gâteau</label>
       <select name="taille" id="tailleGateau" required>
-        <option value="Petit">Petit — 85 000 FG</option>
-        <option value="Moyen">Moyen — 105 000 FG</option>
-        <option value="Grand">Grand — 200 000 FG</option>
+        <option value="Petit">Petit — 85 000 GNF</option>
+        <option value="Moyen">Moyen — 105 000 GNF</option>
+        <option value="Grand">Grand — 200 000 GNF</option>
       </select>
 
       <label for="chocolatGateau">Option chocolat</label>
@@ -307,7 +307,7 @@
         <div style="display:flex; justify-content:space-between; gap:1rem; align-items:center;">
           <strong>Prix du gâteau</strong>
           <strong id="prixGateau" style="color:var(--accent); font-size:1.2rem;">
-            85 000 FG
+            85 000 GNF
           </strong>
         </div>
 
@@ -402,8 +402,8 @@
   </div>
 </div>
 
-<script src="/js/api.js?v=14"></script>
-<script src="/js/site.js?v=14"></script>
+<script src="/js/api.js?v=15"></script>
+<script src="/js/site.js?v=15"></script>
 
 <!-- Script de gestion du menu burger et des modales -->
 <script>
@@ -511,7 +511,7 @@
       const prix = tarifsGateau[taille][chocolat];
 
       prixGateau.textContent =
-              prix.toLocaleString('fr-FR') + ' FG';
+              prix.toLocaleString('fr-FR') + ' GNF';
     }
 
     if (tailleGateau && chocolatGateau) {
