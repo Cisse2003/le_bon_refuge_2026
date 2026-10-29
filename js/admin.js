@@ -727,7 +727,21 @@ async function chargerDonneesPlanning() {
         ? reponseSessions
         : reponseSessions.sessions || [];
 
+    console.log("Utilisateurs chargés :", planningState.users);
     console.log("Sessions chargées :", planningState.sessions);
+
+    console.log(
+        "Correspondance utilisateurs / sessions :",
+        planningState.users.map(user => ({
+          id: user.id ?? user.user_id,
+          nom: user.nom ?? user.name ?? user.username,
+          sessions: planningState.sessions.filter(
+              session =>
+                  String(session.user_id) ===
+                  String(user.id ?? user.user_id)
+          )
+        }))
+    );
 
     afficherCalendrierPlanning();
 
