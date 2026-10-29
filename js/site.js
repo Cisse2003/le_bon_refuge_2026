@@ -18,6 +18,41 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 let MENU_DATA = [];
 
+
+/**
+ * Retourne le chemin de l'image à partir du nom du plat.
+ * Les images sont stockées dans le dossier /images/.
+ */
+function obtenirPhotoPlat(nom) {
+    const correspondances = {
+        "caprisun": "caprisun.png",
+        "riz gras à la viande": "riz_gras_a_la_viande.png",
+        "demi-poulet braisé": "demi_poulet_braise.png",
+        "riz gras poulet / poisson": "riz_gras_poulet_poisson.png",
+        "gâteau d'anniversaire personnalisé": "gateau_danniversaire_personnalise.png"
+    };
+
+    const nomNormalise = String(nom || "")
+        .trim()
+        .toLocaleLowerCase("fr-FR");
+
+    // Utiliser le nom de fichier défini explicitement lorsqu'il existe.
+    if (correspondances[nomNormalise]) {
+        return "/images/" + correspondances[nomNormalise];
+    }
+
+    // Sinon, générer automatiquement un nom de fichier standard.
+    const fichier = nomNormalise
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/['’]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+    return fichier ? `/images/${fichier}.png` : "";
+}
+
+
 async function chargerDonneesEtContact() {
     try {
         // Récupération des informations de contact
@@ -37,13 +72,17 @@ async function chargerDonneesEtContact() {
             throw new Error('Le serveur n’a pas renvoyé une liste de plats.');
         }
 
-        MENU_DATA = menu;
+        // Reconstruire les chemins des images depuis le dossier local /images/.
+        MENU_DATA = menu.map(item => ({
+            ...item,
+            photo: obtenirPhotoPlat(item.nom)
+        }));
 
         afficherMenu(MENU_DATA);
         afficherPlatsPopulaires(MENU_DATA);
         remplirParfumsGateau(MENU_DATA);
 
-        console.log('Menu chargé avec succès :', MENU_DATA.length, 'plats');
+        console.log("Menu chargé avec les images locales :", MENU_DATA.length, "plats");
     } catch (err) {
         console.error('Erreur lors du chargement du menu :', err);
 
