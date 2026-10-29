@@ -859,62 +859,55 @@ function afficherCalendrierPlanning() {
                 <div class="planning-sessions">
         `;
 
-    for (const user of utilisateurs) {
-      const idUtilisateur = user.id ?? user.user_id;
-      const nomUtilisateur =
-          user.name ??
-          user.nom ??
-          user.username ??
-          user.login ??
-          `Utilisateur ${idUtilisateur}`;
 
-      const sessions = sessionsDuJour(idUtilisateur, jourISO);
+// Afficher directement les sessions du jour.
+// Ne pas dépendre des identifiants provenant de /api/users.
+const sessionsDuCalendrier = planningState.sessions.filter(session => {
+    const debut = String(session.login_at || "").slice(0, 10);
+    const fin = session.logout_at
+        ? String(session.logout_at).slice(0, 10)
+        : datePlanningISO(new Date());
 
-      if (sessions.length === 0) continue;
+    return debut <= jourISO && fin >= jourISO;
+});
 
-      for (const session of sessions) {
-          const minutes = dureeSession(session);
-          const estEnCours = !session.logout_at;
+for (const session of sessionsDuCalendrier) {
+    const minutes = dureeSession(session);
+    const estEnCours = !session.logout_at;
 
-          // Le nom provient directement de la réponse de l'API.
-        const nomSession =
-            session.nom_utilisateur ||
-            planningState.users.find(
-                user => String(user.id ?? user.user_id) === String(session.user_id)
-            )?.nom ||
-            planningState.users.find(
-                user => String(user.id ?? user.user_id) === String(session.user_id)
-            )?.username ||
-            session.identifiant_utilisateur ||
-            `Utilisateur ${session.user_id}`;
+    const nomSession =
+        session.nom_utilisateur ||
+        session.identifiant_utilisateur ||
+        `Utilisateur ${session.user_id}`;
 
-          const tooltip = [
-              nomSession,
-              `Connexion : ${formaterHeure(session.login_at)}`,
-              `Déconnexion : ${formaterHeure(session.logout_at)}`,
-              `Durée : ${formaterDuree(minutes)}`
-          ].join("\n");
+    const tooltip = [
+        nomSession,
+        `Connexion : ${formaterHeure(session.login_at)}`,
+        `Déconnexion : ${formaterHeure(session.logout_at)}`,
+        `Durée : ${formaterDuree(minutes)}`
+    ].join("\n");
 
-          html += `
-            <div class="planning-session
-            ${estEnCours
-                ? "planning-session-active"
-                : "planning-session-terminee"}"
-            title="${echapperHTML(tooltip)}"
-            aria-label="${echapperHTML(tooltip)}">
-      
-                <span class="planning-session-nom">
-                ${echapperHTML(nomSession)}
-          </span>
-      
-            <span class="planning-session-duree">
-                      ${formaterDuree(minutes)}
-                  </span>
-      
-          </div>
-            `;
-      }
-    }
+    html += `
+    <div class="planning-session ${
+    estEnCours
+        ? "planning-session-active"
+        : "planning-session-terminee"
+  }"
+  title="${echapperHTML(tooltip)}"
+  aria-label="${echapperHTML(tooltip)}">
+
+      <span class="planning-session-nom">
+      ${echapperHTML(nomSession)}
+</span>
+
+  <span class="planning-session-duree">
+                ${formaterDuree(minutes)}
+            </span>
+
+</div>
+  `;
+}
+
 
     html += `
                 </div>
@@ -945,8 +938,15 @@ function afficherCalendrierPlanning() {
     const debutMois = `${annee}-${String(mois + 1).padStart(2, "0")}-01`;
 
     const sessionsUtilisateur = planningState.sessions.filter(session => {
-      return String(session.user_id) === String(idUtilisateur)
-          && String(session.login_at).slice(0, 7) === debutMois.slice(0, 7);
+      const identifiantUtilisateur =
+          user.username ?? user.login;
+
+      const memeUtilisateur =
+          session.identifiant_utilisateur === identifiantUtilisateur ||
+          session.nom_utilisateur === user.nom;
+
+      return memeUtilisateur &&
+          String(session.login_at).slice(0, 7) === debutMois.slice(0, 7);
     });
 
     const totalMinutes = sessionsUtilisateur.reduce((total, session) => {
