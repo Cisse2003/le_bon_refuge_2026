@@ -671,6 +671,11 @@ function dureeSession(session) {
  * Retourne toutes les sessions d'un utilisateur pour un jour donné.
  */
 function sessionsDuJour(userId, jour) {
+  const aujourdHui = datePlanningISO(new Date());
+
+  // Ne pas afficher les sessions des jours futurs.
+  if (jour > aujourdHui) return [];
+
   return planningState.sessions.filter(session => {
     return String(session.user_id) === String(userId)
         && String(session.login_at).slice(0, 10) === jour;
