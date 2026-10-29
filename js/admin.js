@@ -605,7 +605,7 @@ function formaterDuree(minutes) {
 /**
  * Convertit une date en YYYY-MM-DD.
  */
-function dateISO(date) {
+function datePlanningISO(date) {
   const annee = date.getFullYear();
   const mois = String(date.getMonth() + 1).padStart(2, "0");
   const jour = String(date.getDate()).padStart(2, "0");
@@ -753,7 +753,7 @@ function afficherCalendrierPlanning() {
   // Calendrier français : lundi = première colonne.
   const decalage = (premierJour.getDay() + 6) % 7;
 
-  const aujourdHui = dateISO(new Date());
+  const aujourdHui = datePlanningISO(new Date());
 
   const utilisateurs = planningState.users.filter(user => {
     return user.active !== false && user.deleted_at == null;
@@ -816,7 +816,7 @@ function afficherCalendrierPlanning() {
   // Toutes les dates du mois.
   for (let numeroJour = 1; numeroJour <= nombreJours; numeroJour++) {
     const dateCourante = new Date(annee, mois, numeroJour);
-    const jourISO = dateISO(dateCourante);
+    const jourISO = datePlanningISO(dateCourante);
 
     const estAujourdhui = jourISO === aujourdHui;
 
