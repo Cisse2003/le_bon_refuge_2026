@@ -1,53 +1,71 @@
 
 <?php
-// test_sessions.php — Afficher les sessions du mois en cours
+
 
 require_once __DIR__ . '/includes/db.php';
 
+header('Content-Type: text/plain; charset=utf-8');
+
 try {
+    // Connexion à la base de données existante
     $pdo = getDB();
 
-    // Déterminer le mois en cours.
-    $mois = date('Y-m');
+    // Récupérer la définition actuelle de la colonne role
+    $stmt = $pdo->query("SHOW COLUMNS FROM `users` LIKE 'role'");
+    $colonne = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $debutMois = $mois . '-01 00:00:00';
+    if (!$colonne) {
+        throw new RuntimeException(
+            "La colonne 'role' n'existe pas dans la table 'users'."
+        );
+    }
 
-    $debutMoisSuivant = date(
-        'Y-m-d H:i:s',
-        strtotime($debutMois . ' +1 month')
-    );
+    $type = $colonne['Type'];
 
-    $sql = "
-    SELECT
-        s.id,
-        s.user_id,
-        u.nom AS nom_utilisateur,
-        u.username AS identifiant_utilisateur,
-        s.login_at,
-        s.logout_at
-    FROM user_sessions s
-    LEFT JOIN users u ON u.id = s.user_id
-    WHERE s.login_at >= :debut_mois
-      AND s.login_at < :debut_mois_suivant
-    ORDER BY s.login_at ASC
-";
+    // Si role est un ENUM, ajouter cuisinier aux valeurs autorisées
+    if (stripos($type, 'enum(') === 0) {
+        preg_match_all("/'((?:[^'\\\\]|\\\\.)*)'/", $type, $matches);
 
-    $stmt = $pdo->prepare($sql);
+        $roles = $matches[1] ?? [];
 
-    $stmt->execute([
-        'debut_mois' => $debutMois,
-        'debut_mois_suivant' => $debutMoisSuivant
-    ]);
+        if (!in_array('cuisinier', $roles, true)) {
+            $roles[] = 'cuisinier';
 
-    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $valeurs = implode(
+                ', ',
+                array_map(
+                    static fn($role) => $pdo->quote($role),
+                    $roles
+                )
+            );
 
-    jsonResponse(['sessions' => $sessions]);
+            $sql = "ALTER TABLE `users`
+                    MODIFY COLUMN `role` ENUM($valeurs)";
 
+            // Préserver les attributs existants de la colonne
+            if (stripos($colonne['Null'], 'NO') === 0) {
+                $sql .= " NOT NULL";
+            } else {
+                $sql .= " NULL";
+            }
 
-    echo '<pre>';
-    print_r($sessions);
-    echo '</pre>';
+            if ($colonne['Default'] !== null) {
+                $sql .= " DEFAULT " . $pdo->quote($colonne['Default']);
+            }
 
-} catch (PDOException $e) {
-    die('Erreur SQL : ' . htmlspecialchars($e->getMessage()));
+            $pdo->exec($sql);
+
+            echo "Succès : le rôle 'cuisinier' a été ajouté à la colonne users.role.\n";
+        } else {
+            echo "Le rôle 'cuisinier' est déjà autorisé dans la colonne users.role.\n";
+        }
+    } else {
+        echo "La colonne users.role n'est pas un ENUM.\n";
+        echo "Type actuel : " . $type . "\n";
+        echo "Aucune modification effectuée : ce type de colonne accepte peut-être déjà le rôle.\n";
+    }
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo "Erreur : " . $e->getMessage();
 }
