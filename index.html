@@ -265,42 +265,43 @@
         </div>
       </div>
 
+
       <!-- Carte Google Maps -->
       <div style="margin-top: 2rem;">
         <h3 style="font-family:var(--font-body); color:var(--paper); margin-bottom:1rem;">
           📍 Retrouvez-nous sur Google Maps
         </h3>
 
-        <a
-                href="https://maps.app.goo.gl/V54qoQxE83D5fTws7?g_st=aw"
-                target="_blank"
-                rel="noopener noreferrer"
-                style="display:block;"
-                aria-label="Ouvrir la localisation du Bon Refuge sur Google Maps"
-        >
-          <div style="
-            width:100%;
-            min-height:180px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            flex-direction:column;
-            gap:0.8rem;
-            background:rgba(255,255,255,0.05);
-            border:1px solid rgba(255,255,255,0.12);
-            border-radius:12px;
-            text-align:center;
-            padding:2rem 1rem;
-            box-sizing:border-box;
-          ">
-            <span style="font-size:2.5rem;">📍</span>
-            <strong style="color:var(--paper);">Le Bon Refuge</strong>
-            <span style="color:var(--paper-muted);">
-              Cliquez ici pour afficher notre emplacement sur Google Maps.
-            </span>
-          </div>
-        </a>
+        <div style="
+    width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.12);
+  ">
+          <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m24!1m12!1m3!1d29000796.616689734!2d-26.92109617723698!3d27.465015544595317!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!4m9!3e0!4m3!3m2!1d48.696689!2d6.162632599999999!4m3!3m2!1d9.690597!2d-13.515293999999999!5e0!3m2!1sfr!2sfr!4v1793366201253!5m2!1sfr!2sfr"
+                  width="100%"
+                  height="400"
+                  style="border:0; display:block;"
+                  allowfullscreen
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  title="Localisation du restaurant Le Bon Refuge sur Google Maps">
+          </iframe>
+        </div>
+
+        <div style="margin-top: 1rem; text-align: center;">
+          <a
+                  href="https://maps.app.goo.gl/V54qoQxE83D5fTws7?g_st=aw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn">
+            🧭 Obtenir l'itinéraire
+          </a>
+        </div>
       </div>
+
 
     </div>
   </div>
