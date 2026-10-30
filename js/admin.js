@@ -11,7 +11,7 @@ const dateISO = (s) => String(s || '').replace(' ', 'T'); // dates MySQL compati
 let USERS_CACHE = [];
 
 async function init() {
-  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'superviseur']);
+  USER = await requireStaffAuth(['admin', 'chef', 'assistant_chef', 'cuisinier', 'superviseur']);
   if (!USER) return;
   document.getElementById('rolePill').textContent = USER.nom + ' · ' + USER.role;
 
@@ -484,7 +484,14 @@ async function chargerUtilisateurs() {
       <tr>
         <td>${escapeHtml(u.nom)}</td>
         <td>${escapeHtml(u.username)}</td>
-        <td>${escapeHtml(u.role)}</td>
+        <td>${escapeHtml({
+      admin: 'Administrateur',
+      serveur: 'Serveur / Caissier',
+      chef: 'Chef',
+      assistant_chef: 'Assistant du chef',
+      cuisinier: 'Cuisinier',
+      superviseur: 'Superviseur'
+    }[u.role] || u.role)}</td>
         <td>${u.actif
         ? '<span class="badge badge--ok">Oui</span>'
         : '<span class="badge badge--out">Non</span>'}</td>
