@@ -738,7 +738,7 @@ if (($segments[0] ?? '') === 'admin' && ($segments[1] ?? '') === 'sessions') {
 // --- USERS ---
 if ($segments[0] === 'users') {
     $id = $segments[1] ?? null;
-    $ROLES_OK = ['serveur', 'chef', 'assistant_chef', 'admin']; // jamais 'superviseur' depuis l'admin
+    $ROLES_OK = ['serveur', 'chef', 'assistant_chef', 'cuisinier', 'admin']; // jamais 'superviseur' depuis l'admin
 
     if ($method === 'GET' && !$id) {
         $me = requireRole('admin', 'superviseur');
