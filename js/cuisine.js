@@ -16,7 +16,7 @@ function biper() {
 }
 
 async function init() {
-  USER = await requireStaffAuth(['chef', 'assistant_chef', 'admin']);
+  USER = await requireStaffAuth(['chef', 'assistant_chef', 'cuisinier', 'admin']);
   if (!USER) return;
   document.getElementById('rolePill').textContent = USER.nom + ' · ' + USER.role;
 
